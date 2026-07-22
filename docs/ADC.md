@@ -171,6 +171,19 @@ test and a 5 s seek-storm torture test, with verdicts at the research
 thresholds (p95 <50 ms excellent / <100 ms acceptable / >150 ms escalate
 to WebCodecs). Human measurement pass still pending.
 
+**Measured 2026-07-22 (hedge b closed).** Random-seek test, 100/100
+seeks completed, on real long-GOP camera footage (a harder decode case
+than the all-intra proxy) in what appears to be Safari/WebKit — the
+engine Tauri would embed, and the riskier of the two per the research:
+mean 5.8 ms, **p95 9.0 ms**, max 15.0 ms, ~172 effective seeks/s.
+The 50 ms "excellent" threshold is beaten 5×. Verdict: webview
+scrubbing is settled; the WebCodecs escalation path is retired unless
+real proxies someday regress; the web + vanilla JS + local-server UI
+decision stands with margin. All-intra proxies remain specified
+because they guarantee the property rather than relying on fast
+hardware long-GOP decode. Torture-drag (coalescing) run still pending
+but cannot change the verdict at these latencies.
+
 ---
 
 ## ADC-006 — Storage tiering: local NAS working tier + GCS archival tier (done)
