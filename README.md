@@ -24,6 +24,7 @@ pre-capture deliverables from plan section 9:
 | Corpus throughput model | `scripts/throughput_model.py` | 9.5, 8.7 |
 | Rust ingest core (`harness check` / `ingest` / `validate`) | `harness/` | 3, 5 |
 | Scrub-latency prototype + clip generator | `tools/scrub_prototype.html`, `scripts/make_scrub_clip.sh` | ADC-005 |
+| Annotation UI (clip-review loop) | `annotator/` | 4, ADC-011 |
 | Architecture decision log | `docs/ADC.md` | — |
 
 ## Run locally
@@ -84,7 +85,23 @@ The annotation-UI scrub-latency prototype (ADC-005 hedge):
 Drag the scrub strip hard and run both automated tests. Decision
 thresholds on p95 seek latency: under 50 ms excellent, under 100 ms
 acceptable, over 150 ms means escalating to the WebCodecs path
-(docs/research/annotation-ui.md).
+(docs/research/annotation-ui.md). Measured 2026-07-22 in Safari/WebKit:
+p95 9–10 ms, zero seek coalescing — settled.
+
+The annotation UI (needs the venv: `python3 -m venv .venv &&
+./.venv/bin/pip install -r requirements.txt`):
+
+    ./.venv/bin/python -m annotator.main --clips <proxy-dir>
+
+Open the printed `http://127.0.0.1:8765/?token=...` URL. The server is
+loopback-only; the token gates `/api/*` (the media is PHI, the static shell
+is not). Each media file in the directory is one clip in the review queue:
+scrub (same controls as the prototype), mark in/out with `I`/`O`, fill the
+schema form, `⌘↵` saves and advances to the next unannotated clip. Every
+record is validated server-side against
+`schema/encounter_record.schema.json` before it reaches SQLite; rejects
+come back with field-level paths. `export JSONL` dumps the schema-pure
+records.
 
 ## Headline finding so far
 

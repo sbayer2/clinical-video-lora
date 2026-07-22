@@ -26,5 +26,7 @@ sessions/
 *.safetensors
 *.gguf
 
-# Local annotation exports (may contain clinical notes)
+# Local annotation exports and databases (may contain clinical notes)
 memory_records*.json
+*.db
+*.jsonl

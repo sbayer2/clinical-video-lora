@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Encounter Annotator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>Encounter Annotator</h1>
+    <div id="queueBar">
+      <button id="prevClip" class="secondary" title="[">‹</button>
+      <span id="clipLabel">loading…</span>
+      <button id="nextClip" class="secondary" title="]">›</button>
+      <span id="progress"></span>
+      <a id="exportLink" href="#">export JSONL</a>
+    </div>
+  </header>
+
+  <section id="playerPane">
+    <video id="v" muted playsinline></video>
+    <div id="scrub"><div class="fill"></div><div class="tick"></div></div>
+    <div class="row hint">
+      <span><kbd>space</kbd> play/pause · <kbd>←</kbd><kbd>→</kbd> frame · <kbd>⇧</kbd>+arrows 1 s ·
+        <kbd>I</kbd>/<kbd>O</kbd> mark in/out · <kbd>[</kbd> <kbd>]</kbd> prev/next clip ·
+        <kbd>⌘</kbd><kbd>↵</kbd> save &amp; next</span>
+      <span id="clipBounds"></span>
+      <span id="timeReadout"></span>
+    </div>
+  </section>
+
+  <form id="f" autocomplete="off">
+    <div id="formBody"><!-- built from /api/schema by app.js --></div>
+    <div class="row" id="saveBar">
+      <button type="submit" id="save">Save &amp; next (⌘↵)</button>
+      <span id="status"></span>
+    </div>
+  </form>
+</main>
+<script src="/static/app.js"></script>
+</body>
+</html>

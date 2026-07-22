@@ -366,3 +366,42 @@ the corpus's lifetime — the annotation UI and export layers can surface
 "this session had a dead channel" without re-deriving it. The gate makes
 `check` mandatory in practice, which is what plan section 3 intended.
 Three new integration tests cover the flow (17 total).
+
+---
+
+## ADC-011 — Annotation UI clip-review loop (done, v0)
+
+**Context.** ADC-005 settled the architecture (web + vanilla JS + local
+FastAPI, composed proxies) and the scrub measurement retired the latency
+risk. This is the first real slice of plan section 5 module 4: the loop the
+annotator lives in.
+
+**Decision.** `annotator/` — FastAPI on 127.0.0.1 with a per-run token
+gating `/api/*` only (media is PHI; the static shell is not), vanilla JS
+frontend. Structural choices:
+
+- **Queue model**: a directory of proxy files, one clip each — the
+  candidate-detection pipeline will later emit exactly this shape, so the
+  UI is decoupled from how clips get proposed.
+- **Schema stays the single source of truth**: every record is validated
+  server-side against `schema/encounter_record.schema.json` before
+  insertion (422s carry field-level paths back to the form); the client
+  pulls enums and required-ness from `/api/schema` rather than duplicating
+  them.
+- **SQLite stores schema-pure JSON**: the record column validates against
+  the schema exactly; UI-side facts (which proxy file) live in side
+  columns, never inside the record — so `additionalProperties: false`
+  keeps meaning something.
+- **Keyboard loop**: prototype scrub controls carried over; `I`/`O` mark
+  in/out and become `clip.t_start`/`t_end`; save-and-next auto-advances to
+  the first unannotated clip. Multiple records per clip are allowed
+  (a clip can contain more than one move).
+- Range serving verified (206) — seeking works; media never leaves
+  loopback.
+
+**Consequences / open.** Waveform lane (precomputed peaks at transcode
+time) not yet present; candidate-queue and capture-check sidecar surfacing
+("this session had a dead channel") pending derive-layer integration;
+outcome-linkage is a separate deferred pass per the plan; no record
+edit/delete in v0 — annotate again and reconcile at export. Six server
+tests cover the gate, queue, Range, validation, and traversal safety.
