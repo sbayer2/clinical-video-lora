@@ -181,8 +181,15 @@ scrubbing is settled; the WebCodecs escalation path is retired unless
 real proxies someday regress; the web + vanilla JS + local-server UI
 decision stands with margin. All-intra proxies remain specified
 because they guarantee the property rather than relying on fast
-hardware long-GOP decode. Torture-drag (coalescing) run still pending
-but cannot change the verdict at these latencies.
+hardware long-GOP decode. Torture-drag run, same session: 301 seeks
+issued / 300 completed — effectively zero coalescing — at 60.0
+effective seeks/s (display-rate-limited, not decode-limited), mean
+6.1 ms, p95 10.0 ms, max 13.0 ms under continuous storm. Hedge fully
+closed. Residual caveat, logged by the operator: the test clip was
+audio-light; audio-track seek-resync overhead is expected to be small
+against a 15× margin, and annotation proxies carry a single stereo
+track (multitrack audio is served as precomputed waveform peaks, not
+live decode). Spot-check with an audio-heavy clip when convenient.
 
 ---
 
