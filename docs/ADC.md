@@ -418,4 +418,12 @@ Watch for this class recurring in the 9.4 memory test before adding a
 field. (c) Annotating third-party footage bends the `why` field toward
 describing the observed clinician rather than the annotator's own read —
 the schema presumes annotator = clinician; fine for tool trials, worth
-remembering for any Tier-3 coaching reuse.
+remembering for any Tier-3 coaching reuse. (d) Player shipped muted — a
+leftover from the scrub prototype, indefensible in a tool whose payload
+is prosody; unmuted, `M` toggles. (e) The affect suggestion list was
+negative-only (inherited from the plan's section-4 sketch, which was
+written around de-escalation/bad-news moments). Open-vocabulary or not,
+suggestions anchor — a negative-only list would have skewed the corpus's
+read vocabulary toward the dramatic half of the register space.
+Balanced with positive/neutral states everywhere the vocabulary lives
+(annotator, memory instrument, schema description).

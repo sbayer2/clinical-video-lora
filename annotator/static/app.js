@@ -9,9 +9,15 @@ const token = new URLSearchParams(location.search).get("token") || "";
 const api = path => path + (path.includes("?") ? "&" : "?") + "token=" + encodeURIComponent(token);
 const FPS = 30;
 
+// Open vocabulary — these are anchors, not options. Keep the polarity
+// balanced: a negative-only list would skew the corpus's read vocabulary
+// toward the dramatic half of the register space (real-use finding,
+// ADC-011).
 const SUGGEST = {
   affect_observed: ["angry", "frightened", "dismissive", "flat", "tearful",
-                    "embarrassed", "skeptical", "overwhelmed"],
+                    "embarrassed", "skeptical", "overwhelmed",
+                    "calm", "relieved", "cheerful", "engaged", "trusting",
+                    "curious", "hopeful", "stoic"],
   register_selected: ["brisk", "slow", "warm", "firm", "playful", "grave", "matter-of-fact"],
 };
 
@@ -152,6 +158,7 @@ document.addEventListener("keydown", e => {
     case "ArrowLeft": e.preventDefault(); seekFrames(e.shiftKey ? -FPS : -1); break;
     case "i": case "I": markIn = v.currentTime; renderBounds(); break;
     case "o": case "O": markOut = v.currentTime; renderBounds(); break;
+    case "m": case "M": v.muted = !v.muted; break;
     case "[": $("prevClip").click(); break;
     case "]": $("nextClip").click(); break;
   }

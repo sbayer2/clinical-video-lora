@@ -65,7 +65,7 @@
         "acuity": { "type": "string", "enum": ["low", "moderate", "high"] },
         "affect_observed": {
           "type": "string",
-          "description": "Open vocabulary; suggested values: angry, frightened, dismissive, flat, tearful, embarrassed, skeptical, overwhelmed."
+          "description": "Open vocabulary; keep suggestion lists polarity-balanced (negative-only anchors skew the corpus). Suggested values: angry, frightened, dismissive, flat, tearful, embarrassed, skeptical, overwhelmed, calm, relieved, cheerful, engaged, trusting, curious, hopeful, stoic."
         },
         "prior_relationship": { "type": "string", "enum": ["none", "established"] },
         "register_selected": {
