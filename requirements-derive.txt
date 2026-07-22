@@ -1,0 +1,12 @@
+# Derive-layer dependencies (ADC-008). Separate from requirements.txt so the
+# annotator stays lean; install only on the machine that runs derivation.
+mlx-whisper
+silero-vad
+librosa
+ruptures
+torch
+torchaudio
+audonnx
+audeer
+mediapipe
+opencv-python-headless
