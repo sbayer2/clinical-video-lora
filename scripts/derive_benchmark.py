@@ -61,16 +61,21 @@ def main() -> None:
         return {"bytes": wav16.stat().st_size}
     timed(results, "extract_audio", f"{args.minutes:g} min", extract)
 
-    audio = None
+    # torchaudio 2.11 removed audio I/O without torchcodec; load once with
+    # soundfile and hand tensors/arrays to every stage that needs them.
+    import soundfile as sf
+    audio_np, _sr = sf.read(str(wav16), dtype="float32")
     speech_ts: list = []
 
     # -- VAD (Silero)
     def vad():
-        nonlocal audio, speech_ts
-        from silero_vad import get_speech_timestamps, load_silero_vad, read_audio
+        nonlocal speech_ts
+        import torch
+        from silero_vad import get_speech_timestamps, load_silero_vad
         model = load_silero_vad()
-        audio = read_audio(str(wav16), sampling_rate=16000)
-        speech_ts = get_speech_timestamps(audio, model, sampling_rate=16000)
+        speech_ts = get_speech_timestamps(
+            torch.from_numpy(audio_np), model, sampling_rate=16000
+        )
         speech_secs = sum(t["end"] - t["start"] for t in speech_ts) / 16000
         return {"speech_segments": len(speech_ts), "speech_seconds": round(speech_secs, 1)}
     timed(results, "vad_silero", f"{args.minutes:g} min", vad)
@@ -97,7 +102,7 @@ def main() -> None:
         device = "cpu"  # MPS unsupported for this op chain in places; CPU is the honest floor
         model = bundle.get_model(with_star=False).to(device)
         slice_secs = min(300.0, secs)
-        wave, sr = torchaudio.load(str(wav16), num_frames=int(16000 * slice_secs))
+        wave = torch.from_numpy(audio_np[: int(16000 * slice_secs)]).unsqueeze(0)
         # Rough transcript slice proportional to time — a smoke benchmark of
         # throughput, not of alignment quality.
         words_all = [
@@ -147,8 +152,7 @@ def main() -> None:
             archive = audeer.download_url(SER_MODEL_URL, str(OUT_DIR), verbose=False)
             audeer.extract_archive(archive, str(cache), verbose=False)
         model = audonnx.load(str(cache))
-        assert audio is not None
-        sig = audio.numpy()
+        sig = audio_np
         hop, win = 2 * 16000, 2 * 16000
         n = 0
         for start in range(0, max(1, len(sig) - win), hop):

@@ -284,9 +284,36 @@ Apple silicon. Research: [research/derive-pipeline.md](research/derive-pipeline.
 - Estimated derive pass for a 15-min encounter: ~6–14 min audio-only,
   ~15–35 min with video (extrapolated, unmeasured).
 
-**Open.** First engineering task on real data: one-session smoke benchmark.
-License risk register lives in the research doc; revisit before any
-commercial deployment.
+**Measured 2026-07-22** (`scripts/derive_benchmark.py`, Apple M5 Pro,
+first 15 min of a real clinical interview film, warm model caches):
+
+| stage | scope | seconds | × realtime |
+|---|---|---|---|
+| extract (ffmpeg) | 15 min | 0.4 | 2368× |
+| VAD (Silero) | 15 min | 2.4 | 378× |
+| ASR (mlx-whisper large-v3-turbo) | 15 min | 15.6 | 58× |
+| forced alignment (MMS, CPU) | 5-min slice | 101.8 | 2.9× |
+| prosody (pYIN + RMS) | 15 min | 48.5 | 19× |
+| SER (audeering A/V/D, 2 s hops) | 15 min | 66.0 | 14× |
+| face landmarks (MediaPipe, 10 fps) | 15 min | 11.5 | 78× |
+| change-point (PELT, 1 Hz × 6) | 15 min | 0.6 | 1636× |
+
+Audio-only (VAD+ASR+prosody+SER+CPD): **133 s for 900 s of audio (6.8×
+realtime)** — well inside the 6–14 min estimate. **Forced alignment is
+the bottleneck**: 2.9× realtime on CPU means ~5 min per 15-min encounter,
+bringing the full audio pass to ~7.4 min; it is the one stage worth
+optimizing (MPS placement, chunked emission, or accepting it — a
+20-encounter shift is still only ~2.5 h of overnight compute). Video
+landmarks came in ~15× cheaper than estimated (11.5 s per angle vs the
+3–6 min estimate); py-feat AUs remain unmeasured. One field note for
+ADC-004's bit-rot file: torchaudio 2.11 removed its audio I/O (now
+requires torchcodec), breaking three stages on first run — encountered
+within hours of installing the derive stack; fixed by routing all audio
+I/O through soundfile.
+
+**Open.** py-feat AU benchmark; alignment optimization if the ~5 min/
+encounter matters at scale. License risk register lives in the research
+doc; revisit before any commercial deployment.
 
 ---
 
