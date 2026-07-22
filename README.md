@@ -45,15 +45,22 @@ toolchain):
 
     cd harness
     cargo test
+    cargo run --release -- check <capture-dir>
     cargo run --release -- ingest <capture-dir> --store <store-dir>
     cargo run --release -- validate --store <store-dir>
 
-Ingest copies each file into a content-addressed immutable store
-(`originals/<hash-prefix>/<blake3>.<ext>`, read-only, verified by
-re-hashing the stored bytes before the manifest entry is written) and
-appends to `manifest.jsonl`. Validate re-hashes everything against the
-manifest and reports missing, corrupted, and orphaned files with a
-nonzero exit — run it before tearing down the capture room.
+Check is the end-of-session capture verification (run before tearing down
+the room): every audio track is fully decoded and inspected for dead
+channels, clipping, wrong sample rate/bit depth, and truncation; video
+containers are parsed for track inventory and duration; and all files must
+agree on duration within a sync tolerance (defaults: 48 kHz, 24-bit, 1.0 s
+spread; override with `--expect-sample-rate`, `--expect-bit-depth`,
+`--sync-tolerance-secs`). Ingest copies each file into a content-addressed
+immutable store (`originals/<hash-prefix>/<blake3>.<ext>`, read-only,
+verified by re-hashing the stored bytes before the manifest entry is
+written) and appends to `manifest.jsonl`. Validate re-hashes everything
+against the manifest and reports missing, corrupted, and orphaned files.
+All three exit nonzero on any failure.
 
 ## Headline finding so far
 

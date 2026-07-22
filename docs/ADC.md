@@ -256,3 +256,38 @@ Apple silicon. Research: [research/derive-pipeline.md](research/derive-pipeline.
 **Open.** First engineering task on real data: one-session smoke benchmark.
 License risk register lives in the research doc; revisit before any
 commercial deployment.
+
+---
+
+## ADC-009 — Capture-check media verification scope (done)
+
+**Context.** Plan section 3 ("build now"): a capture-validation script that
+verifies sync, channel separation, levels, and file integrity at end of
+session, before the room is torn down.
+
+**Decision.** Implemented as `harness check <capture-dir>` in the Rust core
+(`harness/src/media.rs`). Scope, deliberately asymmetric per ADC-008:
+
+- **Audio is decode-verified sample by sample** (symphonia, pure Rust — no
+  C dependency near raw PHI): expected sample rate and bit depth (defaults
+  48 kHz / 24-bit per plan section 3), per-channel RMS/peak, dead-channel
+  detection (< -60 dBFS RMS), clipping detection (≥4 full-scale samples),
+  and truncation (decoded frames vs header-declared frames). Audio is the
+  prosody payload; it gets the deepest check.
+- **Video is container-verified only** (mp4 crate): parseability, track
+  inventory (a camera file with no video track fails), dimensions, nonzero
+  duration. ProRes essence decode is out of scope — it belongs to the
+  derive layer.
+- **Sync is checked as duration agreement** across all media files in the
+  session (default tolerance 1.0 s). True timecode (`tmcd` atom) alignment
+  is deferred until the capture rig exists and its actual timecode
+  behavior is known (the Rust ecosystem has no mature tmcd crate;
+  `ffprobe` fallback is the likely route — research/rust-vs-python.md Q3).
+- An unreadable media file is a failed check on that file, not an abort of
+  the session check; an empty capture directory never passes.
+
+**Consequences.** `check` (pre-ingest, room still standing) and `validate`
+(post-ingest fixity) stay separate commands with separate failure meanings.
+Ten integration tests cover the failure taxonomy; synthetic WAVs are
+generated in-test, so the suite needs no fixtures. Revisit sync checking
+when real rig footage exists (ADC-008's smoke benchmark).
