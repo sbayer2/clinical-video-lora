@@ -159,15 +159,24 @@ document.addEventListener("keydown", e => {
 
 // --- save -------------------------------------------------------------------
 
+function clipBounds() {
+  // Selection is the harness's whole point: never silently claim the whole
+  // file. No marks -> refuse; I only -> single-frame clip at the mark;
+  // I+O -> the segment.
+  if (markIn === null) return null;
+  const t_end = markOut !== null && markOut > markIn ? markOut : markIn + 1 / FPS;
+  const r = t => Math.round(t * 1000) / 1000;
+  return { t_start: r(markIn), t_end: r(t_end) };
+}
+
 function buildRecord() {
   const val = id => $(id).value.trim();
-  const tEnd = markOut ?? v.duration ?? 0;
   const record = {
     schema_version: "0.1.0",
     record_id: crypto.randomUUID(),
     session_id: val("session_id"),
     capture: "recording",
-    clip: { t_start: markIn ?? 0, t_end: tEnd > 0 ? tEnd : 0.01 },
+    clip: clipBounds(),
     segment_class: val("segment_class"),
     read: {
       acuity: val("acuity"),
@@ -196,7 +205,13 @@ function buildRecord() {
 $("f").addEventListener("submit", async e => {
   e.preventDefault();
   const status = $("status");
-  const payload = { clip_file: queue[idx].file, record: buildRecord() };
+  const record = buildRecord();
+  if (!record.clip) {
+    status.textContent = "mark the moment first: I at the clip start (O for its end), then save";
+    status.className = "err";
+    return;
+  }
+  const payload = { clip_file: queue[idx].file, record };
   const res = await fetch(api("/api/records"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },

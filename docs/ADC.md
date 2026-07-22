@@ -405,3 +405,17 @@ time) not yet present; candidate-queue and capture-check sidecar surfacing
 outcome-linkage is a separate deferred pass per the plan; no record
 edit/delete in v0 — annotate again and reconcile at export. Six server
 tests cover the gate, queue, Range, validation, and traversal safety.
+
+**First real-use findings (2026-07-22, archive.org clinical films).**
+(a) Defect found and fixed: with no in/out marks set, save silently
+recorded the whole file as the clip — the exact opposite of the
+selection discipline the harness exists for. Now: no marks blocks save;
+`I` alone yields a single-frame clip; `I`+`O` a segment. (b) First
+schema_gap datum: what mattered was a *patient-state observable*
+("appetite of the patient receiving the food") — a behavioral/
+physiological read the schema's affect-only `read` section cannot hold.
+Watch for this class recurring in the 9.4 memory test before adding a
+field. (c) Annotating third-party footage bends the `why` field toward
+describing the observed clinician rather than the annotator's own read —
+the schema presumes annotator = clinician; fine for tool trials, worth
+remembering for any Tier-3 coaching reuse.
