@@ -22,7 +22,8 @@ pre-capture deliverables from plan section 9:
 | Annotation record schema (JSON Schema 2020-12) | `schema/encounter_record.schema.json` | 4 |
 | Memory-encounter test instrument | `tools/memory_annotation.html` | 9.4 |
 | Corpus throughput model | `scripts/throughput_model.py` | 9.5, 8.7 |
-| Rust ingest core (`harness ingest` / `harness validate`) | `harness/` | 3, 5 |
+| Rust ingest core (`harness check` / `ingest` / `validate`) | `harness/` | 3, 5 |
+| Scrub-latency prototype + clip generator | `tools/scrub_prototype.html`, `scripts/make_scrub_clip.sh` | ADC-005 |
 | Architecture decision log | `docs/ADC.md` | — |
 
 ## Run locally
@@ -68,6 +69,22 @@ failed session (override with `--allow-failed-check`), and writes each
 file's check result as a provenance sidecar
 (`provenance/<hash>.capture-check.json`) keyed by content hash, so
 capture-quality evidence travels with the original forever.
+
+When `ffprobe` is installed, `check` also reads each video file's start
+timecode (`tmcd` track) into the report and sidecars — informational until
+the real rig's timecode behavior is known — and falls back to ffprobe for
+container parsing when the pure-Rust MP4 parser cannot handle a QuickTime
+file.
+
+The annotation-UI scrub-latency prototype (ADC-005 hedge):
+
+    ./scripts/make_scrub_clip.sh scrub_test_clip.mp4 120   # needs ffmpeg
+    open tools/scrub_prototype.html                        # then load the clip
+
+Drag the scrub strip hard and run both automated tests. Decision
+thresholds on p95 seek latency: under 50 ms excellent, under 100 ms
+acceptable, over 150 ms means escalating to the WebCodecs path
+(docs/research/annotation-ui.md).
 
 ## Headline finding so far
 

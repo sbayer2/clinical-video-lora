@@ -160,6 +160,17 @@ really does not play in the target webview. All three predate any real UI
 code. Localhost-port PHI surface is accepted and mitigated (loopback bind,
 token, no LAN exposure); revisit via Tauri if it starts to itch.
 
+**Update (hedge b built).** `tools/scrub_prototype.html` +
+`scripts/make_scrub_clip.sh`: generates a 2-min 3840x1080 side-by-side
+all-intra H.264 clip (hardware-encoded, hue-shifted angle B, built-in
+clock for eyeball sync verification) and measures seek latency in the
+browser — per-seek latency from `currentTime` assignment to `seeked`
+(issued-vs-completed exposes coalescing), presented-frame readout via
+`requestVideoFrameCallback`, mid-frame seek targeting, a 100-seek random
+test and a 5 s seek-storm torture test, with verdicts at the research
+thresholds (p95 <50 ms excellent / <100 ms acceptable / >150 ms escalate
+to WebCodecs). Human measurement pass still pending.
+
 ---
 
 ## ADC-006 — Storage tiering: local NAS working tier + GCS archival tier (done)
@@ -283,6 +294,16 @@ session, before the room is torn down.
   is deferred until the capture rig exists and its actual timecode
   behavior is known (the Rust ecosystem has no mature tmcd crate;
   `ffprobe` fallback is the likely route — research/rust-vs-python.md Q3).
+
+  **Update:** the ffprobe route is now built as an *informational* layer:
+  when ffprobe is installed, `check` reads each video file's start
+  timecode into the report/sidecars (verified against
+  ffmpeg-generated ProRes MOVs with tmcd tracks, including inter-camera
+  start offsets), and container parsing falls back to ffprobe when the
+  pure-Rust mp4 crate cannot handle a QuickTime file. What stays deferred
+  until the rig exists: making timecode a *checked* invariant (agreement
+  window, drift, LTC-on-audio decoding if the rig free-runs) — that
+  policy needs real rig behavior to be designed against.
 - An unreadable media file is a failed check on that file, not an abort of
   the session check; an empty capture directory never passes.
 

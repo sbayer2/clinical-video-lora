@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scrub Latency Prototype — ADC-005 hedge (b)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root { --ink:#1a1a1a; --muted:#666; --line:#ddd; --accent:#1a5276;
+          --good:#1e7a45; --warn:#a06a00; --bad:#a33; }
+  * { box-sizing: border-box; }
+  body { font: 14px/1.5 -apple-system, "Helvetica Neue", sans-serif;
+         color: var(--ink); background:#fafafa; margin:0; padding:1.25rem; }
+  main { max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 1.2rem; margin: 0 0 .25rem; }
+  .sub { color: var(--muted); margin: 0 0 1rem; }
+  #drop { border: 2px dashed var(--line); border-radius: 8px; padding: 2rem;
+          text-align: center; color: var(--muted); background:#fff; cursor: pointer; }
+  #drop.armed { border-color: var(--accent); color: var(--accent); }
+  video { width: 100%; background: #000; border-radius: 6px; display: block; }
+  #scrub { height: 44px; background: #e8e8e8; border-radius: 6px; margin: .6rem 0;
+           position: relative; cursor: ew-resize; touch-action: none; }
+  #scrub .fill { position: absolute; inset: 0 auto 0 0; background: var(--accent);
+                 opacity: .25; border-radius: 6px; pointer-events: none; }
+  #scrub .tick { position: absolute; top: 0; bottom: 0; width: 2px;
+                 background: var(--accent); pointer-events: none; }
+  .row { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; margin: .5rem 0; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+           gap: .6rem; margin-top: .75rem; }
+  .stat { background: #fff; border: 1px solid var(--line); border-radius: 6px;
+          padding: .5rem .7rem; }
+  .stat b { display: block; font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+  .stat span { color: var(--muted); font-size: .78rem; text-transform: uppercase;
+               letter-spacing: .05em; }
+  .stat.good b { color: var(--good); } .stat.warn b { color: var(--warn); }
+  .stat.bad b { color: var(--bad); }
+  button { font: inherit; font-weight: 600; padding: .45rem .9rem; border-radius: 6px;
+           border: 1px solid var(--accent); background: var(--accent); color: #fff;
+           cursor: pointer; }
+  button.secondary { background: #fff; color: var(--accent); }
+  button:disabled { opacity: .4; cursor: default; }
+  kbd { background:#eee; border:1px solid #ccc; border-radius:3px; padding:0 .3em;
+        font-size: .85em; }
+  #verdict { font-weight: 600; }
+  .hint { color: var(--muted); font-size: .85rem; }
+  input[type=number] { width: 4.5rem; font: inherit; padding: .3rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Scrub Latency Prototype</h1>
+  <p class="sub">ADC-005 hedge (b): measure seek latency on a side-by-side all-intra proxy in this
+  browser engine. Generate a clip with <code>scripts/make_scrub_clip.sh</code>, load it, drag the
+  scrub strip hard, then run both automated tests. Decision thresholds (p95 seek):
+  &lt;50 ms excellent · &lt;100 ms acceptable · &gt;150 ms escalate to the WebCodecs path.</p>
+
+  <div id="drop">Drop a video file here or click to choose<input type="file" id="file" accept="video/*" hidden></div>
+
+  <div id="player" hidden>
+    <video id="v" muted playsinline></video>
+    <div id="scrub"><div class="fill"></div><div class="tick"></div></div>
+    <div class="row">
+      <button class="secondary" id="seekTest">Random-seek test (100 seeks)</button>
+      <button class="secondary" id="tortureTest">Torture drag (5 s seek storm)</button>
+      <button class="secondary" id="reset">Reset stats</button>
+      <label>fps <input type="number" id="fps" value="30" min="1" max="120"></label>
+      <span class="hint"><kbd>←</kbd><kbd>→</kbd> frame · <kbd>⇧</kbd>+arrows 1 s ·
+        <kbd>space</kbd> play/pause · <kbd>J</kbd><kbd>K</kbd><kbd>L</kbd> shuttle</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><b id="frame">–</b><span>presented frame</span></div>
+      <div class="stat"><b id="mediaTime">–</b><span>media time (s)</span></div>
+      <div class="stat"><b id="issued">0</b><span>seeks issued</span></div>
+      <div class="stat"><b id="completed">0</b><span>seeks completed</span></div>
+      <div class="stat"><b id="mean">–</b><span>mean latency (ms)</span></div>
+      <div class="stat" id="p95box"><b id="p95">–</b><span>p95 latency (ms)</span></div>
+      <div class="stat"><b id="max">–</b><span>max latency (ms)</span></div>
+      <div class="stat"><b id="rate">–</b><span>effective seeks/s</span></div>
+    </div>
+    <p id="verdict"></p>
+  </div>
+</main>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const v = $("v");
+
+// --- load -------------------------------------------------------------------
+const drop = $("drop");
+drop.onclick = () => $("file").click();
+$("file").onchange = e => load(e.target.files[0]);
+drop.ondragover = e => { e.preventDefault(); drop.classList.add("armed"); };
+drop.ondragleave = () => drop.classList.remove("armed");
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove("armed"); load(e.dataTransfer.files[0]); };
+function load(file) {
+  if (!file) return;
+  v.src = URL.createObjectURL(file);
+  $("player").hidden = false;
+  drop.textContent = file.name;
+  resetStats();
+}
+
+// --- instrumentation --------------------------------------------------------
+// Browsers coalesce rapid seeks: only the newest pending target is decoded.
+// We therefore measure latency as (seeked event) - (most recent issue), and
+// expose issued vs completed so coalescing is visible rather than hidden.
+let issued = 0, completed = 0, latencies = [], pendingT0 = null, windowT0 = null;
+
+function issueSeek(t) {
+  const fps = Number($("fps").value) || 30;
+  const clamped = Math.min(Math.max(t, 0), (v.duration || 0) - 1 / fps);
+  pendingT0 = performance.now();
+  if (windowT0 === null) windowT0 = pendingT0;
+  issued++;
+  v.currentTime = clamped;
+  render();
+}
+function seekToFrame(idx) {
+  const fps = Number($("fps").value) || 30;
+  issueSeek((idx + 0.5) / fps); // mid-frame target: rounding cannot cross a frame boundary
+}
+v.addEventListener("seeked", () => {
+  if (pendingT0 !== null) {
+    latencies.push(performance.now() - pendingT0);
+    pendingT0 = null;
+  }
+  completed++;
+  render();
+});
+
+function quantile(sorted, q) {
+  if (!sorted.length) return null;
+  const i = Math.min(sorted.length - 1, Math.floor(q * sorted.length));
+  return sorted[i];
+}
+function render() {
+  $("issued").textContent = issued;
+  $("completed").textContent = completed;
+  const sorted = [...latencies].sort((a, b) => a - b);
+  const mean = sorted.length ? sorted.reduce((a, b) => a + b, 0) / sorted.length : null;
+  const p95 = quantile(sorted, 0.95);
+  $("mean").textContent = mean === null ? "–" : mean.toFixed(1);
+  $("p95").textContent = p95 === null ? "–" : p95.toFixed(1);
+  $("max").textContent = sorted.length ? sorted[sorted.length - 1].toFixed(1) : "–";
+  const secs = windowT0 === null ? 0 : (performance.now() - windowT0) / 1000;
+  $("rate").textContent = secs > 0.2 ? (completed / secs).toFixed(1) : "–";
+  const box = $("p95box");
+  box.className = "stat" + (p95 === null ? "" : p95 < 50 ? " good" : p95 < 100 ? " warn" : " bad");
+  $("verdict").textContent = p95 === null ? "" :
+    p95 < 50 ? "p95 < 50 ms — webview scrubbing is excellent; no escalation needed." :
+    p95 < 100 ? "p95 < 100 ms — acceptable; keep an eye on it with real ProRes-derived proxies." :
+    p95 < 150 ? "p95 100–150 ms — marginal; retest with shorter clips before committing." :
+    "p95 > 150 ms — escalate to the WebCodecs canvas path (research/annotation-ui.md).";
+}
+function resetStats() {
+  issued = 0; completed = 0; latencies = []; pendingT0 = null; windowT0 = null;
+  render();
+}
+$("reset").onclick = resetStats;
+
+// Presented-frame readout via requestVideoFrameCallback (the only reliable
+// "what is actually on screen" signal).
+function rvfcLoop(_now, meta) {
+  const fps = Number($("fps").value) || 30;
+  $("mediaTime").textContent = meta.mediaTime.toFixed(3);
+  $("frame").textContent = Math.round(meta.mediaTime * fps - 0.5);
+  const tick = document.querySelector("#scrub .tick");
+  const fill = document.querySelector("#scrub .fill");
+  if (v.duration) {
+    const x = (meta.mediaTime / v.duration) * 100;
+    tick.style.left = `calc(${x}% - 1px)`;
+    fill.style.width = `${x}%`;
+  }
+  v.requestVideoFrameCallback(rvfcLoop);
+}
+if ("requestVideoFrameCallback" in HTMLVideoElement.prototype) {
+  v.requestVideoFrameCallback(rvfcLoop);
+} else {
+  $("frame").textContent = "no rVFC";
+}
+
+// --- scrub strip ------------------------------------------------------------
+const scrub = $("scrub");
+let dragging = false;
+function scrubTo(clientX) {
+  const rect = scrub.getBoundingClientRect();
+  const frac = Math.min(Math.max((clientX - rect.left) / rect.width, 0), 1);
+  if (v.duration) issueSeek(frac * v.duration);
+}
+scrub.addEventListener("pointerdown", e => {
+  dragging = true; scrub.setPointerCapture(e.pointerId); v.pause(); scrubTo(e.clientX);
+});
+scrub.addEventListener("pointermove", e => { if (dragging) scrubTo(e.clientX); });
+scrub.addEventListener("pointerup", () => { dragging = false; });
+
+// --- keyboard ---------------------------------------------------------------
+let shuttleRate = 0;
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "INPUT" || !v.duration) return;
+  const fps = Number($("fps").value) || 30;
+  const frameIdx = Math.round(v.currentTime * fps - 0.5);
+  switch (e.key) {
+    case "ArrowRight": e.preventDefault(); v.pause(); seekToFrame(frameIdx + (e.shiftKey ? fps : 1)); break;
+    case "ArrowLeft":  e.preventDefault(); v.pause(); seekToFrame(frameIdx - (e.shiftKey ? fps : 1)); break;
+    case " ": e.preventDefault(); v.paused ? v.play() : v.pause(); shuttleRate = 0; break;
+    case "l": case "L": shuttleRate = shuttleRate <= 0 ? 1 : Math.min(shuttleRate * 2, 8);
+      v.playbackRate = shuttleRate; v.play(); break;
+    case "k": case "K": v.pause(); shuttleRate = 0; break;
+    case "j": case "J": v.pause(); shuttleRate = 0; seekToFrame(frameIdx - 5); break;
+  }
+});
+
+// --- automated tests --------------------------------------------------------
+// Random-seek test: sequential await-seeked seeks → a clean latency
+// distribution with no coalescing.
+$("seekTest").onclick = async () => {
+  if (!v.duration) return;
+  setBusy(true); resetStats(); v.pause();
+  for (let i = 0; i < 100; i++) {
+    await new Promise(resolve => {
+      v.addEventListener("seeked", resolve, { once: true });
+      issueSeek(Math.random() * v.duration);
+    });
+  }
+  setBusy(false); render();
+};
+
+// Torture drag: issue a seek every animation frame for 5 s — simulates the
+// hardest jog-wheel drag; completed/issued shows the coalescing ratio and
+// effective scrub rate.
+$("tortureTest").onclick = () => {
+  if (!v.duration) return;
+  setBusy(true); resetStats(); v.pause();
+  const t0 = performance.now();
+  (function storm() {
+    if (performance.now() - t0 > 5000) { setBusy(false); render(); return; }
+    // Sweep a triangle wave across the whole clip.
+    const phase = ((performance.now() - t0) / 2500) % 2;
+    const frac = phase < 1 ? phase : 2 - phase;
+    issueSeek(frac * v.duration);
+    requestAnimationFrame(storm);
+  })();
+};
+
+function setBusy(busy) {
+  for (const id of ["seekTest", "tortureTest", "reset"]) $(id).disabled = busy;
+}
+</script>
+</body>
+</html>

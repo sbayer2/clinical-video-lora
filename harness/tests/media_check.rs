@@ -185,6 +185,48 @@ fn empty_capture_dir_fails() {
     assert!(!report.is_clean(), "an empty capture dir must never pass");
 }
 
+/// Gated on ffmpeg/ffprobe being installed: generates a real ProRes MOV
+/// with a tmcd timecode track — the format the capture rig will write —
+/// and verifies check_dir reads the start timecode and accepts the file.
+#[test]
+fn prores_mov_timecode_is_read_when_ffmpeg_available() {
+    use std::process::Command;
+    let have = |bin: &str| Command::new(bin).arg("-version").output().is_ok();
+    if !have("ffmpeg") || !have("ffprobe") {
+        eprintln!("skipping: ffmpeg/ffprobe not installed");
+        return;
+    }
+
+    let dir = fresh_dir("tmcd");
+    let path = dir.join("cam1.mov");
+    let status = Command::new("ffmpeg")
+        .args([
+            "-y", "-hide_banner", "-loglevel", "error",
+            "-f", "lavfi", "-i", "testsrc=size=128x72:rate=30",
+            "-t", "1", "-timecode", "01:02:03:04",
+            "-c:v", "prores",
+        ])
+        .arg(&path)
+        .status()
+        .unwrap();
+    assert!(status.success(), "ffmpeg failed to generate ProRes test file");
+
+    assert_eq!(media::probe_timecode(&path).as_deref(), Some("01:02:03:04"));
+
+    let report = check_dir(&dir, &expectations()).unwrap();
+    assert_eq!(report.files.len(), 1);
+    let info = &report.files[0];
+    assert_eq!(info.kind, media::MediaKind::Video);
+    assert_eq!(info.start_timecode.as_deref(), Some("01:02:03:04"));
+    assert!(
+        info.issues.is_empty(),
+        "ProRes MOV with tmcd track must pass the container check, got: {:?}",
+        info.issues
+    );
+    let d = info.duration_secs.unwrap();
+    assert!((d - 1.0).abs() < 0.1, "duration {d} not ~1s");
+}
+
 #[test]
 fn mp4_container_parses_and_missing_video_track_is_flagged() {
     use mp4::{

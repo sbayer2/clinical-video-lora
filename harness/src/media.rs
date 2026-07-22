@@ -107,6 +107,10 @@ pub struct MediaInfo {
     pub hash: Option<String>,
     pub kind: MediaKind,
     pub duration_secs: Option<f64>,
+    /// Start timecode (e.g. "01:02:03:04") read via ffprobe, if the file
+    /// carries one and ffprobe is installed. Informational until the real
+    /// rig's timecode behavior is known (ADC-009).
+    pub start_timecode: Option<String>,
     /// Human summary, e.g. "48000 Hz, 2 ch, 24-bit, peak -6.0 dBFS".
     pub detail: String,
     pub issues: Vec<Issue>,
@@ -232,14 +236,58 @@ pub fn probe_audio(path: &Path, expect: &Expectations) -> Result<MediaInfo> {
         hash: None,
         kind: MediaKind::Audio,
         duration_secs: Some(frames as f64 / f64::from(sample_rate)),
+        start_timecode: None,
         detail: format!("{sample_rate} Hz, {channels} ch, {bits}, peak {peak_dbfs:.1} dBFS"),
         issues,
     })
 }
 
 /// Parse a MOV/MP4 container: track inventory and duration sanity. Essence
-/// decode (ProRes etc.) is deliberately out of scope here.
+/// decode (ProRes etc.) is deliberately out of scope here. Tries the pure
+/// Rust mp4 parser first; QuickTime files it cannot handle (ProRes MOVs
+/// with tmcd tracks are the expected case) fall back to ffprobe when
+/// installed.
 pub fn probe_video(path: &Path) -> Result<MediaInfo> {
+    match probe_video_mp4(path) {
+        Ok(info) => Ok(info),
+        Err(mp4_err) => match probe_video_ffprobe(path) {
+            Ok(info) => Ok(info),
+            Err(_) => Err(mp4_err),
+        },
+    }
+}
+
+fn build_video_info(
+    path: &Path,
+    duration: f64,
+    video_tracks: usize,
+    audio_tracks: usize,
+    dims: Option<(u32, u32)>,
+    via: &str,
+) -> MediaInfo {
+    let mut issues = Vec::new();
+    if video_tracks == 0 {
+        issues.push(Issue::NoVideoTrack);
+    }
+    if duration <= 0.0 {
+        issues.push(Issue::ZeroDuration);
+    }
+    let dims_str = dims
+        .map(|(w, h)| format!(", {w}x{h}"))
+        .unwrap_or_default();
+    MediaInfo {
+        path: path.to_path_buf(),
+        rel_path: path.file_name().unwrap_or_default().to_string_lossy().into_owned(),
+        hash: None,
+        kind: MediaKind::Video,
+        duration_secs: Some(duration),
+        start_timecode: None,
+        detail: format!("{video_tracks} video / {audio_tracks} audio track(s){dims_str}{via}"),
+        issues,
+    }
+}
+
+fn probe_video_mp4(path: &Path) -> Result<MediaInfo> {
     let file = File::open(path).with_context(|| format!("cannot open {}", path.display()))?;
     let size = file.metadata()?.len();
     let mp4 = mp4::Mp4Reader::read_header(BufReader::new(file), size)
@@ -248,38 +296,73 @@ pub fn probe_video(path: &Path) -> Result<MediaInfo> {
     let duration = mp4.duration().as_secs_f64();
     let mut video_tracks = 0usize;
     let mut audio_tracks = 0usize;
-    let mut dims: Option<(u16, u16)> = None;
+    let mut dims: Option<(u32, u32)> = None;
     for track in mp4.tracks().values() {
         match track.track_type() {
             Ok(mp4::TrackType::Video) => {
                 video_tracks += 1;
-                dims = Some((track.width(), track.height()));
+                dims = Some((u32::from(track.width()), u32::from(track.height())));
             }
             Ok(mp4::TrackType::Audio) => audio_tracks += 1,
             _ => {}
         }
     }
+    Ok(build_video_info(path, duration, video_tracks, audio_tracks, dims, ""))
+}
 
-    let mut issues = Vec::new();
-    if video_tracks == 0 {
-        issues.push(Issue::NoVideoTrack);
+fn ffprobe_json(path: &Path) -> Result<serde_json::Value> {
+    let ffprobe =
+        std::env::var("HARNESS_FFPROBE").unwrap_or_else(|_| "ffprobe".to_string());
+    let out = std::process::Command::new(ffprobe)
+        .args(["-v", "quiet", "-print_format", "json", "-show_streams", "-show_format"])
+        .arg(path)
+        .output()
+        .context("ffprobe not runnable")?;
+    if !out.status.success() {
+        bail!("ffprobe failed on {}", path.display());
     }
-    if duration <= 0.0 {
-        issues.push(Issue::ZeroDuration);
-    }
+    serde_json::from_slice(&out.stdout).context("unparseable ffprobe output")
+}
 
-    let dims_str = dims
-        .map(|(w, h)| format!(", {w}x{h}"))
-        .unwrap_or_default();
-    Ok(MediaInfo {
-        path: path.to_path_buf(),
-        rel_path: path.file_name().unwrap_or_default().to_string_lossy().into_owned(),
-        hash: None,
-        kind: MediaKind::Video,
-        duration_secs: Some(duration),
-        detail: format!("{video_tracks} video / {audio_tracks} audio track(s){dims_str}"),
-        issues,
-    })
+fn probe_video_ffprobe(path: &Path) -> Result<MediaInfo> {
+    let json = ffprobe_json(path)?;
+    let empty = Vec::new();
+    let streams = json["streams"].as_array().unwrap_or(&empty);
+    let mut video_tracks = 0usize;
+    let mut audio_tracks = 0usize;
+    let mut dims: Option<(u32, u32)> = None;
+    for s in streams {
+        match s["codec_type"].as_str() {
+            Some("video") => {
+                video_tracks += 1;
+                if let (Some(w), Some(h)) = (s["width"].as_u64(), s["height"].as_u64()) {
+                    dims = Some((w as u32, h as u32));
+                }
+            }
+            Some("audio") => audio_tracks += 1,
+            _ => {}
+        }
+    }
+    let duration: f64 = json["format"]["duration"]
+        .as_str()
+        .and_then(|d| d.parse().ok())
+        .unwrap_or(0.0);
+    Ok(build_video_info(path, duration, video_tracks, audio_tracks, dims, " (via ffprobe)"))
+}
+
+/// Start timecode from a `tmcd` track or container tag, via ffprobe.
+/// Returns None when ffprobe is missing or the file carries no timecode —
+/// informational either way until the rig's behavior is known.
+pub fn probe_timecode(path: &Path) -> Option<String> {
+    let json = ffprobe_json(path).ok()?;
+    let stream_tc = json["streams"].as_array().and_then(|streams| {
+        streams
+            .iter()
+            .find_map(|s| s["tags"]["timecode"].as_str())
+    });
+    stream_tc
+        .or_else(|| json["format"]["tags"]["timecode"].as_str())
+        .map(String::from)
 }
 
 #[derive(Debug)]
@@ -370,6 +453,7 @@ pub fn check_dir(dir: &Path, expect: &Expectations) -> Result<CheckReport> {
             hash: None,
             kind: if matches!(ext.as_str(), "wav" | "flac") { MediaKind::Audio } else { MediaKind::Video },
             duration_secs: None,
+            start_timecode: None,
             detail: "unreadable".to_string(),
             issues: vec![Issue::Decode { message: format!("{e:#}") }],
         });
@@ -379,6 +463,12 @@ pub fn check_dir(dir: &Path, expect: &Expectations) -> Result<CheckReport> {
             .to_string_lossy()
             .into_owned();
         info.hash = crate::store::hash_file(path).ok();
+        if info.kind == MediaKind::Video {
+            info.start_timecode = probe_timecode(path);
+            if let Some(tc) = &info.start_timecode {
+                info.detail.push_str(&format!(", tc {tc}"));
+            }
+        }
         files.push(info);
     }
 
@@ -427,6 +517,8 @@ pub struct JsonFileEntry {
     pub hash: Option<String>,
     pub kind: String,
     pub duration_secs: Option<f64>,
+    #[serde(default)]
+    pub start_timecode: Option<String>,
     pub detail: String,
     pub issues: Vec<serde_json::Value>,
 }
@@ -450,6 +542,7 @@ pub fn build_json_report(report: &CheckReport, expect: &Expectations) -> Result<
                     MediaKind::Video => "video".to_string(),
                 },
                 duration_secs: f.duration_secs,
+                start_timecode: f.start_timecode.clone(),
                 detail: f.detail.clone(),
                 issues,
             })
