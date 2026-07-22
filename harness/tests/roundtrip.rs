@@ -27,10 +27,10 @@ fn ingest_then_validate_clean_and_dedup() {
     fs::write(src.join(".DS_Store"), b"junk").unwrap();
     let store_dir = root.join("store");
 
-    let report = store::ingest_dir(&src, &store_dir).unwrap();
+    let report = store::ingest_dir(&src, &store_dir, &store::IngestOptions::default()).unwrap();
     assert_eq!(report.ingested, 2, "hidden files must be skipped");
 
-    let again = store::ingest_dir(&src, &store_dir).unwrap();
+    let again = store::ingest_dir(&src, &store_dir, &store::IngestOptions::default()).unwrap();
     assert_eq!(again.ingested, 0);
     assert_eq!(again.skipped_duplicate, 2);
 
@@ -46,7 +46,7 @@ fn stored_originals_are_readonly() {
     fs::create_dir_all(&src).unwrap();
     fs::write(src.join("a.wav"), b"payload").unwrap();
     let store_dir = root.join("store");
-    store::ingest_dir(&src, &store_dir).unwrap();
+    store::ingest_dir(&src, &store_dir, &store::IngestOptions::default()).unwrap();
 
     let entry = &harness::manifest::load(&store_dir).unwrap()[0];
     let stored = store_dir.join(&entry.store_path);
@@ -61,7 +61,7 @@ fn validate_detects_corruption_and_orphans() {
     fs::create_dir_all(&src).unwrap();
     fs::write(src.join("a.wav"), b"original payload!").unwrap();
     let store_dir = root.join("store");
-    store::ingest_dir(&src, &store_dir).unwrap();
+    store::ingest_dir(&src, &store_dir, &store::IngestOptions::default()).unwrap();
 
     // Same-length bit flip: only the hash check can catch this.
     let entry = &harness::manifest::load(&store_dir).unwrap()[0];
@@ -89,7 +89,7 @@ fn validate_detects_missing_and_size_mismatch() {
     fs::write(src.join("a.wav"), b"first payload").unwrap();
     fs::write(src.join("b.wav"), b"second payload").unwrap();
     let store_dir = root.join("store");
-    store::ingest_dir(&src, &store_dir).unwrap();
+    store::ingest_dir(&src, &store_dir, &store::IngestOptions::default()).unwrap();
 
     let entries = harness::manifest::load(&store_dir).unwrap();
     let first = store_dir.join(&entries[0].store_path);

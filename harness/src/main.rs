@@ -30,6 +30,11 @@ enum Cmd {
         /// Maximum allowed duration spread across files, in seconds
         #[arg(long, default_value_t = 1.0)]
         sync_tolerance_secs: f64,
+        /// Also write a machine-readable report. `harness ingest` picks up
+        /// `<dir>/capture-check.json` automatically and turns it into
+        /// provenance sidecars.
+        #[arg(long)]
+        json_report: Option<PathBuf>,
     },
     /// Ingest media files from a directory into the immutable session store
     Ingest {
@@ -38,6 +43,10 @@ enum Cmd {
         /// Store root (created if absent)
         #[arg(long)]
         store: PathBuf,
+        /// Proceed even if the capture-check report in the source directory
+        /// is not clean
+        #[arg(long)]
+        allow_failed_check: bool,
     },
     /// Re-hash every stored file against the manifest; nonzero exit if anything is wrong
     Validate {
@@ -59,7 +68,7 @@ fn main() -> ExitCode {
 
 fn run() -> anyhow::Result<ExitCode> {
     match Cli::parse().cmd {
-        Cmd::Check { dir, expect_sample_rate, expect_bit_depth, sync_tolerance_secs } => {
+        Cmd::Check { dir, expect_sample_rate, expect_bit_depth, sync_tolerance_secs, json_report } => {
             let expect = harness::media::Expectations {
                 sample_rate: expect_sample_rate,
                 bits_per_sample: expect_bit_depth,
@@ -67,14 +76,20 @@ fn run() -> anyhow::Result<ExitCode> {
             };
             let report = harness::media::check_dir(&dir, &expect)?;
             println!("{report}");
+            if let Some(path) = json_report {
+                let json = harness::media::build_json_report(&report, &expect)?;
+                harness::media::write_json_report(&json, &path)?;
+                println!("json report written to {}", path.display());
+            }
             Ok(if report.is_clean() {
                 ExitCode::SUCCESS
             } else {
                 ExitCode::FAILURE
             })
         }
-        Cmd::Ingest { src, store } => {
-            let report = harness::store::ingest_dir(&src, &store)?;
+        Cmd::Ingest { src, store, allow_failed_check } => {
+            let opts = harness::store::IngestOptions { allow_failed_check };
+            let report = harness::store::ingest_dir(&src, &store, &opts)?;
             println!("{report}");
             Ok(ExitCode::SUCCESS)
         }

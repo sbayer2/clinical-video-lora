@@ -15,6 +15,7 @@ use std::io::BufReader;
 use std::path::{Path, PathBuf};
 
 use anyhow::{Context, Result, bail};
+use serde::{Deserialize, Serialize};
 use symphonia::core::audio::SampleBuffer;
 use symphonia::core::codecs::DecoderOptions;
 use symphonia::core::errors::Error as SymError;
@@ -25,7 +26,7 @@ use symphonia::core::probe::Hint;
 use walkdir::WalkDir;
 
 /// Capture-rig expectations from plan section 3, overridable on the CLI.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Expectations {
     pub sample_rate: u32,
     pub bits_per_sample: u32,
@@ -46,9 +47,10 @@ const CLIP_LEVEL: f32 = 0.999;
 const CLIP_MIN_SAMPLES: u64 = 4;
 const SILENCE_RMS_DBFS: f64 = -60.0;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum Issue {
-    Decode(String),
+    Decode { message: String },
     UnexpectedSampleRate { found: u32, expected: u32 },
     LowBitDepth { found: u32, expected: u32 },
     SilentChannel { channel: usize, rms_dbfs: f64 },
@@ -61,7 +63,7 @@ pub enum Issue {
 impl fmt::Display for Issue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Issue::Decode(msg) => write!(f, "decode failure: {msg}"),
+            Issue::Decode { message } => write!(f, "decode failure: {message}"),
             Issue::UnexpectedSampleRate { found, expected } => {
                 write!(f, "sample rate {found} Hz, expected {expected} Hz")
             }
@@ -89,7 +91,8 @@ impl fmt::Display for Issue {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum MediaKind {
     Audio,
     Video,
@@ -98,6 +101,10 @@ pub enum MediaKind {
 #[derive(Debug)]
 pub struct MediaInfo {
     pub path: PathBuf,
+    /// Path relative to the checked directory (portable across machines).
+    pub rel_path: String,
+    /// BLAKE3 of the file contents — the join key to the ingest manifest.
+    pub hash: Option<String>,
     pub kind: MediaKind,
     pub duration_secs: Option<f64>,
     /// Human summary, e.g. "48000 Hz, 2 ch, 24-bit, peak -6.0 dBFS".
@@ -157,11 +164,11 @@ pub fn probe_audio(path: &Path, expect: &Expectations) -> Result<MediaInfo> {
             Ok(packet) => packet,
             Err(SymError::IoError(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => break,
             Err(SymError::ResetRequired) => {
-                issues.push(Issue::Decode("unexpected mid-stream reset".to_string()));
+                issues.push(Issue::Decode { message: "unexpected mid-stream reset".to_string() });
                 break;
             }
             Err(e) => {
-                issues.push(Issue::Decode(e.to_string()));
+                issues.push(Issue::Decode { message: e.to_string() });
                 break;
             }
         };
@@ -171,7 +178,7 @@ pub fn probe_audio(path: &Path, expect: &Expectations) -> Result<MediaInfo> {
         let decoded = match decoder.decode(&packet) {
             Ok(decoded) => decoded,
             Err(e) => {
-                issues.push(Issue::Decode(e.to_string()));
+                issues.push(Issue::Decode { message: e.to_string() });
                 break;
             }
         };
@@ -221,6 +228,8 @@ pub fn probe_audio(path: &Path, expect: &Expectations) -> Result<MediaInfo> {
         .unwrap_or_else(|| "unknown depth".to_string());
     Ok(MediaInfo {
         path: path.to_path_buf(),
+        rel_path: path.file_name().unwrap_or_default().to_string_lossy().into_owned(),
+        hash: None,
         kind: MediaKind::Audio,
         duration_secs: Some(frames as f64 / f64::from(sample_rate)),
         detail: format!("{sample_rate} Hz, {channels} ch, {bits}, peak {peak_dbfs:.1} dBFS"),
@@ -264,6 +273,8 @@ pub fn probe_video(path: &Path) -> Result<MediaInfo> {
         .unwrap_or_default();
     Ok(MediaInfo {
         path: path.to_path_buf(),
+        rel_path: path.file_name().unwrap_or_default().to_string_lossy().into_owned(),
+        hash: None,
         kind: MediaKind::Video,
         duration_secs: Some(duration),
         detail: format!("{video_tracks} video / {audio_tracks} audio track(s){dims_str}"),
@@ -340,6 +351,9 @@ pub fn check_dir(dir: &Path, expect: &Expectations) -> Result<CheckReport> {
             .extension()
             .map(|e| e.to_string_lossy().to_lowercase())
             .unwrap_or_default();
+        if dirent.file_name().to_string_lossy() == CHECK_REPORT_FILE {
+            continue;
+        }
         let info = match ext.as_str() {
             "wav" | "flac" => probe_audio(path, expect),
             "mov" | "mp4" | "m4v" => probe_video(path),
@@ -350,13 +364,22 @@ pub fn check_dir(dir: &Path, expect: &Expectations) -> Result<CheckReport> {
         };
         // A file that cannot be opened/parsed at all is a failed check on
         // that file, not an abort of the whole session check.
-        files.push(info.unwrap_or_else(|e| MediaInfo {
+        let mut info = info.unwrap_or_else(|e| MediaInfo {
             path: path.to_path_buf(),
+            rel_path: String::new(),
+            hash: None,
             kind: if matches!(ext.as_str(), "wav" | "flac") { MediaKind::Audio } else { MediaKind::Video },
             duration_secs: None,
             detail: "unreadable".to_string(),
-            issues: vec![Issue::Decode(format!("{e:#}"))],
-        }));
+            issues: vec![Issue::Decode { message: format!("{e:#}") }],
+        });
+        info.rel_path = path
+            .strip_prefix(dir)
+            .unwrap_or(path)
+            .to_string_lossy()
+            .into_owned();
+        info.hash = crate::store::hash_file(path).ok();
+        files.push(info);
     }
 
     let durations: Vec<f64> = files.iter().filter_map(|f| f.duration_secs).collect();
@@ -370,4 +393,95 @@ pub fn check_dir(dir: &Path, expect: &Expectations) -> Result<CheckReport> {
     };
 
     Ok(CheckReport { files, skipped, sync_spread_secs, sync_ok })
+}
+
+// --- machine-readable report -------------------------------------------------
+//
+// Written by `harness check --json-report`, read back by `harness ingest`,
+// which turns each file entry into a provenance sidecar next to the stored
+// original (ADC-007's sidecar rule applied to capture-quality provenance).
+
+/// Conventional report filename inside a capture directory. `check` never
+/// probes it as media and `ingest` never stores it as an original.
+pub const CHECK_REPORT_FILE: &str = "capture-check.json";
+pub const REPORT_VERSION: &str = "0.1.0";
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct JsonReport {
+    pub report_version: String,
+    pub checked_at: String,
+    pub tool: crate::manifest::Tool,
+    pub expectations: Expectations,
+    pub clean: bool,
+    pub sync_ok: bool,
+    pub sync_spread_secs: Option<f64>,
+    pub files: Vec<JsonFileEntry>,
+    pub skipped: Vec<String>,
+}
+
+/// Issues are carried as raw JSON so the reader does not need to keep pace
+/// with the `Issue` enum; sidecars preserve them verbatim.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct JsonFileEntry {
+    pub rel_path: String,
+    pub hash: Option<String>,
+    pub kind: String,
+    pub duration_secs: Option<f64>,
+    pub detail: String,
+    pub issues: Vec<serde_json::Value>,
+}
+
+pub fn build_json_report(report: &CheckReport, expect: &Expectations) -> Result<JsonReport> {
+    let files = report
+        .files
+        .iter()
+        .map(|f| {
+            let issues = f
+                .issues
+                .iter()
+                .map(serde_json::to_value)
+                .collect::<Result<Vec<_>, _>>()
+                .context("cannot serialize check issues")?;
+            Ok(JsonFileEntry {
+                rel_path: f.rel_path.clone(),
+                hash: f.hash.clone(),
+                kind: match f.kind {
+                    MediaKind::Audio => "audio".to_string(),
+                    MediaKind::Video => "video".to_string(),
+                },
+                duration_secs: f.duration_secs,
+                detail: f.detail.clone(),
+                issues,
+            })
+        })
+        .collect::<Result<Vec<_>>>()?;
+    Ok(JsonReport {
+        report_version: REPORT_VERSION.to_string(),
+        checked_at: humantime::format_rfc3339_seconds(std::time::SystemTime::now()).to_string(),
+        tool: crate::manifest::Tool::this(),
+        expectations: expect.clone(),
+        clean: report.is_clean(),
+        sync_ok: report.sync_ok,
+        sync_spread_secs: report.sync_spread_secs,
+        files,
+        skipped: report
+            .skipped
+            .iter()
+            .map(|p| p.to_string_lossy().into_owned())
+            .collect(),
+    })
+}
+
+pub fn write_json_report(report: &JsonReport, path: &Path) -> Result<()> {
+    let json = serde_json::to_string_pretty(report).context("cannot serialize check report")?;
+    std::fs::write(path, json)
+        .with_context(|| format!("cannot write check report to {}", path.display()))?;
+    Ok(())
+}
+
+pub fn load_json_report(path: &Path) -> Result<JsonReport> {
+    let bytes = std::fs::read(path)
+        .with_context(|| format!("cannot read check report {}", path.display()))?;
+    serde_json::from_slice(&bytes)
+        .with_context(|| format!("malformed check report {}", path.display()))
 }

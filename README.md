@@ -45,7 +45,7 @@ toolchain):
 
     cd harness
     cargo test
-    cargo run --release -- check <capture-dir>
+    cargo run --release -- check <capture-dir> --json-report <capture-dir>/capture-check.json
     cargo run --release -- ingest <capture-dir> --store <store-dir>
     cargo run --release -- validate --store <store-dir>
 
@@ -61,6 +61,13 @@ verified by re-hashing the stored bytes before the manifest entry is
 written) and appends to `manifest.jsonl`. Validate re-hashes everything
 against the manifest and reports missing, corrupted, and orphaned files.
 All three exit nonzero on any failure.
+
+The commands chain: `check --json-report` writes `capture-check.json` into
+the capture directory; `ingest` finds it automatically, refuses to ingest a
+failed session (override with `--allow-failed-check`), and writes each
+file's check result as a provenance sidecar
+(`provenance/<hash>.capture-check.json`) keyed by content hash, so
+capture-quality evidence travels with the original forever.
 
 ## Headline finding so far
 

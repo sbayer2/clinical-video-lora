@@ -291,3 +291,37 @@ session, before the room is torn down.
 Ten integration tests cover the failure taxonomy; synthetic WAVs are
 generated in-test, so the suite needs no fixtures. Revisit sync checking
 when real rig footage exists (ADC-008's smoke benchmark).
+
+---
+
+## ADC-010 — Check results become provenance sidecars at ingest (done)
+
+**Context.** ADC-007 mandates JSON provenance sidecars per artifact. The
+capture check (ADC-009) produced only human-readable output, so its
+evidence evaporated after the terminal scrolled.
+
+**Decision.** `harness check --json-report` writes a machine-readable
+report; the conventional location is `capture-check.json` inside the
+capture directory. `harness ingest` then:
+
+- refuses to ingest a session whose report is not clean
+  (`--allow-failed-check` overrides — the failure evidence is then
+  preserved rather than discarded, since failed captures are still data);
+- never stores the report file itself as an original;
+- writes `provenance/<hash>.capture-check.json` per matched file — keyed
+  by BLAKE3 content hash, not filename, so provenance survives renames and
+  applies to deduplicated re-ingests exactly once;
+- counts and warns about files the report does not cover (added or changed
+  after the check ran).
+
+Sidecars carry the per-file result plus the report-level context it was
+produced under (expectations, sync verdict, tool version, timestamp).
+Issue records are stored as raw JSON so readers never need to track the
+`Issue` enum. `provenance/` lives beside `originals/`, which keeps the
+fixity orphan scan (`validate`) scoped to originals only.
+
+**Consequences.** Capture-quality evidence travels with the original for
+the corpus's lifetime — the annotation UI and export layers can surface
+"this session had a dead channel" without re-deriving it. The gate makes
+`check` mandatory in practice, which is what plan section 3 intended.
+Three new integration tests cover the flow (17 total).

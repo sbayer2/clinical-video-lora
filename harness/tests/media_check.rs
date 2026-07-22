@@ -172,7 +172,7 @@ fn unreadable_media_is_a_failed_check_not_an_abort() {
     assert_eq!(report.files.len(), 1);
     assert!(!report.is_clean());
     assert!(
-        report.files[0].issues.iter().any(|i| matches!(i, Issue::Decode(_))),
+        report.files[0].issues.iter().any(|i| matches!(i, Issue::Decode { .. })),
         "expected Decode issue, got: {:?}",
         report.files[0].issues
     );
