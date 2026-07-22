@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Memory Encounter Annotation — Schema Test (plan 9.4)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --ink: #1a1a1a; --muted: #666; --line: #ddd; --accent: #1a5276;
+    --warn-bg: #fdf3e3; --warn-line: #e0b05a; --ok: #1e7a45;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font: 15px/1.5 -apple-system, "Helvetica Neue", sans-serif;
+    color: var(--ink); background: #fafafa; margin: 0; padding: 2rem 1rem 4rem;
+  }
+  main { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; margin: 0 0 .25rem; }
+  .sub { color: var(--muted); margin: 0 0 1rem; }
+  .warn {
+    background: var(--warn-bg); border: 1px solid var(--warn-line);
+    border-radius: 6px; padding: .6rem .9rem; margin: 0 0 1.5rem; font-size: .9rem;
+  }
+  fieldset {
+    border: 1px solid var(--line); border-radius: 8px; background: #fff;
+    margin: 0 0 1.25rem; padding: 1rem 1.25rem;
+  }
+  legend { font-weight: 600; padding: 0 .4rem; }
+  label { display: block; font-weight: 600; font-size: .85rem; margin: .8rem 0 .2rem; }
+  label .hint { font-weight: 400; color: var(--muted); }
+  input[type=text], textarea, select {
+    width: 100%; font: inherit; padding: .45rem .6rem;
+    border: 1px solid var(--line); border-radius: 5px; background: #fff;
+  }
+  textarea { min-height: 4.2em; resize: vertical; }
+  textarea:focus, input:focus, select:focus { outline: 2px solid var(--accent); border-color: var(--accent); }
+  .row { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .row > div { flex: 1 1 160px; }
+  .radio-row { display: flex; gap: 1.5rem; align-items: center; margin-top: .3rem; }
+  .radio-row label { display: flex; gap: .35rem; align-items: center; font-weight: 400; margin: 0; }
+  .gap { border-color: var(--accent); border-width: 2px; }
+  .gap legend { color: var(--accent); }
+  .bar { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; margin: 1.5rem 0; }
+  button {
+    font: inherit; font-weight: 600; padding: .55rem 1.1rem; border-radius: 6px;
+    border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer;
+  }
+  button.secondary { background: #fff; color: var(--accent); }
+  button.danger { border-color: #a33; background: #fff; color: #a33; padding: .2rem .6rem; font-weight: 400; }
+  #progress { font-weight: 600; }
+  #progress.done { color: var(--ok); }
+  table { border-collapse: collapse; width: 100%; background: #fff; font-size: .88rem; }
+  th, td { border: 1px solid var(--line); padding: .4rem .6rem; text-align: left; vertical-align: top; }
+  th { background: #f2f2f2; }
+  #status { color: var(--ok); font-size: .9rem; min-height: 1.2em; }
+  @media print { .bar, button { display: none; } body { background: #fff; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Memory Encounter Annotation</h1>
+  <p class="sub">Schema test, action plan §9.4 — annotate 10 encounters from memory. If the schema can't capture
+  what mattered in encounters you remember well, it won't capture it on tape. The <b>schema gap</b> field at the
+  bottom is the output of this exercise; fill it honestly.</p>
+  <div class="warn"><b>De-identify.</b> No names, dates, facility names, or other identifiers anywhere in this form.
+  Records are stored in this browser's localStorage and exported as JSON to your Downloads folder only.</div>
+
+  <form id="f" autocomplete="off">
+    <fieldset>
+      <legend>Encounter</legend>
+      <div class="row">
+        <div>
+          <label for="session_id">Memory id</label>
+          <input type="text" id="session_id" placeholder="mem-001" required>
+        </div>
+        <div>
+          <label for="segment_class">Segment class</label>
+          <select id="segment_class" required>
+            <option value="">—</option>
+            <option>de-escalation</option>
+            <option>bad-news</option>
+            <option>refusal-conversion</option>
+            <option>reassurance</option>
+            <option>instruction-delivery</option>
+            <option>routine</option>
+          </select>
+        </div>
+      </div>
+      <label for="context">Context <span class="hint">— minimal de-identified setting needed to understand the read</span></label>
+      <textarea id="context" placeholder="e.g. first-time parent, febrile infant, 2am, already seen elsewhere twice this week"></textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend>The read — what you were seeing at that moment</legend>
+      <div class="row">
+        <div>
+          <label for="acuity">Acuity</label>
+          <select id="acuity" required>
+            <option value="">—</option><option>low</option><option>moderate</option><option>high</option>
+          </select>
+        </div>
+        <div>
+          <label for="affect_observed">Affect observed</label>
+          <input type="text" id="affect_observed" list="affects" required>
+          <datalist id="affects">
+            <option>angry</option><option>frightened</option><option>dismissive</option><option>flat</option>
+            <option>tearful</option><option>embarrassed</option><option>skeptical</option><option>overwhelmed</option>
+          </datalist>
+        </div>
+        <div>
+          <label for="prior_relationship">Prior relationship</label>
+          <select id="prior_relationship" required>
+            <option value="">—</option><option>none</option><option>established</option>
+          </select>
+        </div>
+        <div>
+          <label for="register_selected">Register selected</label>
+          <input type="text" id="register_selected" list="registers" required>
+          <datalist id="registers">
+            <option>brisk</option><option>slow</option><option>warm</option><option>firm</option>
+            <option>playful</option><option>grave</option><option>matter-of-fact</option>
+          </datalist>
+        </div>
+      </div>
+      <label for="why">Why <span class="hint">— what in the presentation drove the register choice (the payload)</span></label>
+      <textarea id="why" required></textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend>The move</legend>
+      <label for="move_description">Description <span class="hint">— what you did and what you were going for</span></label>
+      <textarea id="move_description" required></textarea>
+      <label for="discriminating_feature">Discriminating feature <span class="hint">— what made this call rather than another</span></label>
+      <textarea id="discriminating_feature" required></textarea>
+      <label for="in_frame_response">In-frame response <span class="hint">— observable shift, if any</span></label>
+      <textarea id="in_frame_response"></textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend>Self-rating — failures are required corpus content</legend>
+      <div class="row">
+        <div>
+          <label>Did the move work?</label>
+          <div class="radio-row">
+            <label><input type="radio" name="worked" value="1" required> worked</label>
+            <label><input type="radio" name="worked" value="0"> failed</label>
+          </div>
+        </div>
+        <div>
+          <label for="confidence">Confidence in that rating: <span id="confval">0.7</span></label>
+          <input type="range" id="confidence" min="0" max="1" step="0.05" value="0.7"
+                 oninput="document.getElementById('confval').textContent=this.value">
+        </div>
+      </div>
+    </fieldset>
+
+    <fieldset class="gap">
+      <legend>Schema gap — the point of this exercise</legend>
+      <label for="schema_gap">What mattered in this encounter that the fields above could <em>not</em> capture?
+        <span class="hint">Write "nothing" only if that is true.</span></label>
+      <textarea id="schema_gap" required></textarea>
+    </fieldset>
+
+    <div class="bar">
+      <button type="submit">Save record</button>
+      <button type="button" class="secondary" id="export">Export JSON</button>
+      <span id="progress"></span>
+      <span id="status"></span>
+    </div>
+  </form>
+
+  <table id="list" hidden>
+    <thead><tr><th>id</th><th>class</th><th>register</th><th>worked</th><th>schema gap</th><th></th></tr></thead>
+    <tbody></tbody>
+  </table>
+</main>
+
+<script>
+"use strict";
+const KEY = "memory_encounter_records_v0_1_0";
+const TARGET = 10;
+const $ = id => document.getElementById(id);
+
+const load = () => JSON.parse(localStorage.getItem(KEY) || "[]");
+const store = recs => localStorage.setItem(KEY, JSON.stringify(recs));
+
+function render() {
+  const recs = load();
+  const p = $("progress");
+  p.textContent = `${recs.length}/${TARGET} records`;
+  p.classList.toggle("done", recs.length >= TARGET);
+  const table = $("list");
+  table.hidden = recs.length === 0;
+  const tb = table.querySelector("tbody");
+  tb.innerHTML = "";
+  recs.forEach((r, i) => {
+    const tr = document.createElement("tr");
+    const cells = [r.session_id, r.segment_class, r.read.register_selected,
+                   r.self_rating.worked ? "yes" : "no", r.schema_gap];
+    cells.forEach(t => {
+      const td = document.createElement("td");
+      td.textContent = t;
+      tr.appendChild(td);
+    });
+    const td = document.createElement("td");
+    const del = document.createElement("button");
+    del.textContent = "delete";
+    del.className = "danger";
+    del.onclick = () => { const rs = load(); rs.splice(i, 1); store(rs); render(); };
+    td.appendChild(del);
+    tr.appendChild(td);
+    tb.appendChild(tr);
+  });
+}
+
+$("f").addEventListener("submit", e => {
+  e.preventDefault();
+  const rec = {
+    schema_version: "0.1.0",
+    record_id: crypto.randomUUID(),
+    session_id: $("session_id").value.trim(),
+    capture: "memory",
+    context: $("context").value.trim(),
+    segment_class: $("segment_class").value,
+    read: {
+      acuity: $("acuity").value,
+      affect_observed: $("affect_observed").value.trim(),
+      prior_relationship: $("prior_relationship").value,
+      register_selected: $("register_selected").value.trim(),
+      why: $("why").value.trim()
+    },
+    move: {
+      description: $("move_description").value.trim(),
+      discriminating_feature: $("discriminating_feature").value.trim()
+    },
+    in_frame_response: $("in_frame_response").value.trim(),
+    self_rating: {
+      worked: Number(document.querySelector("input[name=worked]:checked").value),
+      confidence: Number($("confidence").value)
+    },
+    schema_gap: $("schema_gap").value.trim(),
+    annotated_at: new Date().toISOString()
+  };
+  const recs = load();
+  recs.push(rec);
+  store(recs);
+  e.target.reset();
+  $("confval").textContent = "0.7";
+  $("session_id").value = "mem-" + String(recs.length + 1).padStart(3, "0");
+  $("status").textContent = `Saved ${rec.session_id}.`;
+  setTimeout(() => $("status").textContent = "", 2500);
+  render();
+  $("segment_class").focus();
+});
+
+$("export").onclick = () => {
+  const blob = new Blob([JSON.stringify(load(), null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "memory_records.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+
+$("session_id").value = "mem-" + String(load().length + 1).padStart(3, "0");
+render();
+</script>
+</body>
+</html>

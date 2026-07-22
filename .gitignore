@@ -1,0 +1,30 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Rust
+target/
+
+# macOS
+.DS_Store
+
+# Regenerable outputs
+*.log
+scripts/out/
+tests/out/
+*.results.json
+
+# Capture data and model weights — never in git
+capture/
+sessions/
+*.wav
+*.flac
+*.mov
+*.mp4
+*.mxf
+*.safetensors
+*.gguf
+
+# Local annotation exports (may contain clinical notes)
+memory_records*.json

@@ -1,0 +1,302 @@
+<title>Encounter Delivery Harness — Decision Brief</title>
+<style>
+  :root {
+    --paper: #faf9f6;
+    --ink: #20262b;
+    --muted: #5d6871;
+    --line: #e4e1da;
+    --accent: #0e5f66;
+    --accent-soft: #eef4f3;
+    --warn: #a04f2c;
+    --code-bg: #f1efe9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #15191c;
+      --ink: #e4e1da;
+      --muted: #96a1a9;
+      --line: #2c3237;
+      --accent: #63bcc2;
+      --accent-soft: #1b2629;
+      --warn: #d08a63;
+      --code-bg: #1e2428;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper: #15191c;
+    --ink: #e4e1da;
+    --muted: #96a1a9;
+    --line: #2c3237;
+    --accent: #63bcc2;
+    --accent-soft: #1b2629;
+    --warn: #d08a63;
+    --code-bg: #1e2428;
+  }
+  :root[data-theme="light"] {
+    --paper: #faf9f6;
+    --ink: #20262b;
+    --muted: #5d6871;
+    --line: #e4e1da;
+    --accent: #0e5f66;
+    --accent-soft: #eef4f3;
+    --warn: #a04f2c;
+    --code-bg: #f1efe9;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font: 16px/1.62 Seravek, "Gill Sans", -apple-system, "Segoe UI", sans-serif;
+    margin: 0;
+    padding: 3.5rem 1.25rem 5rem;
+  }
+  main { max-width: 47rem; margin: 0 auto; }
+
+  h1, h2, h3 {
+    font-family: Charter, "Bitstream Charter", Cambria, Georgia, serif;
+    line-height: 1.2;
+    text-wrap: balance;
+    margin: 0;
+  }
+  h1 { font-size: 1.95rem; font-weight: 700; }
+  h2 { font-size: 1.28rem; font-weight: 700; margin: 0 0 .9rem; }
+  h3 { font-size: 1.02rem; font-weight: 700; margin: 0 0 .35rem; }
+
+  header { margin-bottom: 2.75rem; }
+  .meta {
+    display: flex; gap: 1.25rem; flex-wrap: wrap;
+    margin-top: .7rem;
+    font-size: .8rem; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .07em;
+  }
+  header p.lede {
+    margin: 1rem 0 0;
+    max-width: 40rem;
+    color: var(--muted);
+  }
+
+  section { border-top: 1px solid var(--line); padding-top: 1.6rem; margin-top: 2.1rem; }
+  .eyebrow {
+    font-size: .74rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .1em;
+    color: var(--accent);
+    margin: 0 0 .5rem;
+  }
+  p { margin: 0 0 .9rem; max-width: 42rem; }
+  section > p:last-child, .answer p:last-child { margin-bottom: 0; }
+  strong { font-weight: 650; }
+
+  code {
+    font: .85em ui-monospace, "SF Mono", Menlo, monospace;
+    background: var(--code-bg);
+    padding: .1em .35em;
+    border-radius: 3px;
+  }
+
+  .qa { display: flex; flex-direction: column; gap: 1.5rem; }
+  .answer { padding-left: 1.1rem; border-left: 2px solid var(--line); }
+  .answer .q {
+    font-weight: 650;
+    margin-bottom: .3rem;
+    max-width: 42rem;
+  }
+  .answer .adc {
+    font-size: .74rem; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .08em;
+    margin-left: .5rem; font-weight: 500;
+  }
+
+  .verdict {
+    background: var(--accent-soft);
+    border-left: 3px solid var(--accent);
+    padding: .85rem 1.1rem;
+    margin: 1.1rem 0;
+    max-width: 42rem;
+  }
+  .verdict p { margin: 0; }
+  .correction { border-left-color: var(--warn); }
+  .correction .flag { color: var(--warn); font-weight: 650; }
+
+  .tablewrap { overflow-x: auto; margin: 1rem 0; }
+  table {
+    border-collapse: collapse;
+    font-size: .9rem;
+    min-width: 26rem;
+  }
+  th, td {
+    text-align: left;
+    padding: .45rem .9rem .45rem 0;
+    border-bottom: 1px solid var(--line);
+    vertical-align: top;
+  }
+  th {
+    font-size: .74rem; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--muted); font-weight: 600;
+  }
+  td.num { font-variant-numeric: tabular-nums; }
+
+  ol.seq { margin: .4rem 0 0; padding-left: 1.3rem; max-width: 42rem; }
+  ol.seq li { margin-bottom: .55rem; }
+  ol.seq li::marker { color: var(--accent); font-weight: 650; }
+
+  ul.tight { margin: .4rem 0 0; padding-left: 1.2rem; max-width: 42rem; }
+  ul.tight li { margin-bottom: .4rem; }
+
+  a { color: var(--accent); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  @media print {
+    body { background: #fff; color: #111; padding: 0; font-size: 11.5pt; }
+    .verdict { background: #fff; }
+    section { break-inside: avoid-page; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+
+<main>
+  <header>
+    <h1>Encounter Delivery Harness — Decision Brief</h1>
+    <div class="meta">
+      <span>2026-07-22</span>
+      <span>Pre-Phase 0</span>
+      <span>ADC-001 – 008 logged</span>
+    </div>
+    <p class="lede">Answers to the action plan's §10 questions, results of the §9.4–9.5 preparation work,
+    and two corrections to the plan itself. Evidence lives in <code>docs/research/</code>;
+    decisions in <code>docs/ADC.md</code>.</p>
+  </header>
+
+  <section>
+    <p class="eyebrow">§10 — The five questions, answered</p>
+    <div class="qa">
+      <div class="answer">
+        <p class="q">Annotation UI — Electron, Tauri, or web + local server?<span class="adc">ADC-005</span></p>
+        <p>The framing dissolved under the evidence. ProRes decodes in <strong>no</strong> webview and has no
+        WebCodecs codec string, so proxy transcode is unconditional — and since transcoding is mandatory anyway,
+        composing both camera angles into <strong>one side-by-side all-intra H.264 file per clip</strong> makes
+        multi-angle sync perfect by construction and scrub latency single-stream. Once sync is solved in the
+        pipeline, the framework barely matters.</p>
+        <p><strong>Decision: build, don't adopt</strong> (no surveyed tool combines two-angle sync, waveform,
+        rich schema forms, and 2-min/clip keyboard cadence — the schema form is the product). Vanilla JS +
+        FastAPI bound to 127.0.0.1 with a token; Tauri held as a packaging escalation. Cheap hedges first:
+        a half-day ELAN trial and a week-1 browser scrub prototype.</p>
+      </div>
+
+      <div class="answer">
+        <p class="q">Storage — GCS + local NVMe, or fully local given PHI?<span class="adc">ADC-006</span></p>
+        <p><strong>Both.</strong> The assumed blocker doesn't exist: Google's HIPAA BAA is self-serve,
+        electronic, and has no minimum spend — a solo practice can execute it in minutes. Local encrypted NAS
+        is the working tier where selective retention culls the 100–200 GB/hr firehose; GCS Coldline→Archive
+        (≈$1.2–4.4/TB/mo) with CMEK is the immutable offsite leg — replacing manual drive rotation, the leg
+        most likely to fail under solo operation. Use <strong>per-object legal holds, not locked bucket
+        retention</strong>: irrevocable WORM would prevent honoring a consent revocation, and CMEK gives
+        crypto-shred. HHS is explicit that client-side encryption does <em>not</em> remove the BAA
+        requirement.</p>
+      </div>
+
+      <div class="answer">
+        <p class="q">Which prosody / affect models run on 64 GB Apple silicon?<span class="adc">ADC-008</span></p>
+        <p>All of them — audio derive runs sub-realtime (~6–14 min per 15-min encounter; ~15–35 min with the
+        video cascade). mlx-whisper large-v3-turbo (2× whisper.cpp on M-series); word timing from CTC forced
+        alignment, not Whisper's drifting DTW timestamps; pYIN + RMS + pause/rate for prosody, deliberately
+        avoiding openSMILE (research-only license) and Praat (GPL). <strong>Skip pyannote entirely</strong> —
+        per-speaker lapel tracks make channel = speaker. On affect: arousal from audio is trustworthy,
+        valence is not, so emotion models are a <em>ranking signal for the review queue, never a
+        classifier</em>. MediaPipe landmarks run continuously; py-feat AUs only inside audio-flagged windows.</p>
+      </div>
+
+      <div class="answer">
+        <p class="q">Manifest format that survives five years — WebDataset, Arrow, or custom?<span class="adc">ADC-007</span></p>
+        <p><strong>The boring one, deliberately</strong>: content-addressed native media files (BLAKE3 names),
+        an append-only JSONL manifest as ground truth, SQLite for annotations, JSON provenance sidecars, and
+        BagIt-style batch checksums. At thousands of clips, columnar formats buy nothing measurable — and their
+        stability records argue against them (Lance: three format iterations in ~2 years; HF datasets v4.0
+        broke its own caches). JSON and SQLite have perfect records. Training-stack formats are emitted on
+        demand and treated as disposable — the plan's own design rule, now evidence-backed.</p>
+      </div>
+
+      <div class="answer">
+        <p class="q">Can Tier 3 (coaching) ship first on a small corpus?</p>
+        <p><strong>Yes.</strong> Lyssn.io — the closest comp — built a real business on models trained from
+        roughly 341–1,553 expert-coded sessions; the projected 500–2,500 clips is the historically demonstrated
+        scale, and modern base models lower the bar (at ~500 clips, retrieval + many-shot in-context
+        conditioning works with no training run). Zero-shot LLMs measurably underperform on fine-grained
+        communication coding — <strong>the expert corpus is the moat</strong>. Regulatory: clinician-facing
+        retrospective education tools are on FDA's explicit non-device list. No Lyssn-for-medical-encounters
+        exists; that lane is open. Standing risk: ambient-scribe vendors own the audio pipe and could enter
+        fast.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">ADC-004 — Implementation language</p>
+    <h2>Hybrid: Rust core, Python derive — user-decided, evidence-aligned</h2>
+    <p><strong>Rust</strong> owns the never-lose-data path — ingest, capture-validation, fixity verification,
+    one static binary (<code>harness ingest</code> / <code>harness validate</code>). Its one decisive,
+    evidence-backed advantage is 5-year bit-rot immunity: a documented 6-year-old Rust project revived in
+    minutes, while a 2026 ML venv likely won't survive to 2031. <strong>Python</strong> keeps everything
+    research-shaped — derive, candidate detection, UI backend — because the ML tooling lives there and full
+    Rust would tax every model swap with an ONNX-export-and-port project. Coupling is a filesystem contract
+    only: Python never writes into the raw store; Rust never imports a model.</p>
+    <div class="verdict correction">
+      <p><span class="flag">Negative finding worth keeping:</span> the supply-chain security argument for Rust
+      is mostly a myth. crates.io does no automated malware scanning at upload, and <code>build.rs</code>
+      executes arbitrary code at build time exactly like <code>setup.py</code>. The durable PHI controls are
+      FileVault, an egress-filtered capture machine, and hash-locked installs in both ecosystems — not the
+      language.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">ADC-003 — Throughput model (§9.5)</p>
+    <h2>The corpus is supply-bound, not annotation-bound</h2>
+    <div class="tablewrap">
+      <table>
+        <tr><th>Scenario</th><th>Annotated / wk</th><th>Hours / wk needed</th><th>5-year total</th></tr>
+        <tr><td>Conservative</td><td class="num">1.8</td><td class="num">0.2</td><td class="num">~414</td></tr>
+        <tr><td>Moderate</td><td class="num">6.3</td><td class="num">0.4</td><td class="num">~1,449</td></tr>
+        <tr><td>Aggressive</td><td class="num">16.0</td><td class="num">0.7</td><td class="num">~3,680</td></tr>
+      </table>
+    </div>
+    <div class="verdict correction">
+      <p><span class="flag">Correction to §8.7:</span> the plan names annotation labor the most likely cause of
+      death. Under the plan's own §4.1 assumption (performance moments are a handful per shift), it isn't —
+      supply is. Even the aggressive scenario needs under one hour per week of annotation.</p>
+    </div>
+    <p>Consequences: the consent instrument (§0.5) is corpus-size-determining, not a compliance formality;
+    annotation-UI speed is deprioritized in favor of correctness and low friction; the moderate scenario
+    clears the LIMA-style ~1k threshold, which the Tier-3 research says is enough to build on. Rerun
+    <code>scripts/throughput_model.py</code> with real shift numbers after the first recorded month.</p>
+  </section>
+
+  <section>
+    <p class="eyebrow">Licensing</p>
+    <h2>Landmines found before they became load-bearing</h2>
+    <p>Research-only or non-commercial: openSMILE, audeering SER weights (CC-BY-NC-SA), OpenFace 3.0 (CMU,
+    no sublicense), Praat/parselmouth (GPL-3 if distributed), emotion2vec/SenseVoice (custom terms — read
+    before use). A clean-for-commercial core exists at every stage: whisper/mlx-whisper (MIT), WhisperX
+    (BSD-2), Silero VAD (MIT), MediaPipe (Apache-2.0), py-feat (MIT), ruptures (BSD-2).</p>
+    <div class="verdict">
+      <p>For the carrier conversation (§0.3): PMC10917358 found video recording of encounters was
+      <em>not</em> associated with increased malpractice claims, and no paid claims 2000–2017 involved
+      recording physicians. Bring it.</p>
+    </div>
+  </section>
+
+  <section>
+    <p class="eyebrow">Sequence</p>
+    <h2>From here</h2>
+    <ol class="seq">
+      <li><strong>Clinician-owner — still blocking:</strong> counsel on recording ownership (§0.1);
+      malpractice carrier (§0.3).</li>
+      <li><strong>Clinician-owner — the schema's acceptance test:</strong> 10 memory encounters in
+      <code>tools/memory_annotation.html</code>; the <em>schema gap</em> fields are the output.</li>
+      <li><strong>Engineering, not gated:</strong> Rust core skeleton against synthetic media; half-day ELAN
+      trial; browser scrub prototype; one-session derive benchmark.</li>
+      <li><strong>Strategic, decide early:</strong> whether Tier 3 becomes the explicit near-term target — it
+      changes annotation priorities (cross-walk a subsample to OS-12 / VR-CoDES so the corpus is credible
+      beyond one expert's style).</li>
+    </ol>
+  </section>
+</main>

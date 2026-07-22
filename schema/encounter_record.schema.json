@@ -1,0 +1,144 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "encounter_record.schema.json",
+  "title": "Encounter Delivery Record",
+  "description": "One annotated segment of a clinical encounter: the clip, the clinician's read at the time, the move made, and (deferred) outcome linkage. Formalizes action-plan section 4. schema_version 0.1.0.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "record_id",
+    "session_id",
+    "capture",
+    "segment_class",
+    "read",
+    "move",
+    "self_rating"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "0.1.0"
+    },
+    "record_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "UUID of the recorded session; for capture=memory, a stable id for the remembered encounter (mem-001 etc.)."
+    },
+    "capture": {
+      "type": "string",
+      "enum": ["recording", "memory"],
+      "description": "memory = schema-validation record written from recall (action plan 9.4), no media exists."
+    },
+    "clip": {
+      "type": "object",
+      "description": "Session-clock boundaries in seconds. Required when capture=recording.",
+      "required": ["t_start", "t_end"],
+      "properties": {
+        "t_start": { "type": "number", "minimum": 0 },
+        "t_end": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "context": {
+      "type": "string",
+      "description": "Free text, de-identified. Minimal setting needed to understand the read (e.g. 'young adult, first-time parent, febrile infant, 2am'). NO names, dates, locations, or other identifiers."
+    },
+    "segment_class": {
+      "type": "string",
+      "enum": [
+        "de-escalation",
+        "bad-news",
+        "refusal-conversion",
+        "reassurance",
+        "instruction-delivery",
+        "routine"
+      ]
+    },
+    "read": {
+      "type": "object",
+      "description": "Clinician state at t_start — what you were seeing and the register you chose because of it.",
+      "required": ["acuity", "affect_observed", "prior_relationship", "register_selected", "why"],
+      "properties": {
+        "acuity": { "type": "string", "enum": ["low", "moderate", "high"] },
+        "affect_observed": {
+          "type": "string",
+          "description": "Open vocabulary; suggested values: angry, frightened, dismissive, flat, tearful, embarrassed, skeptical, overwhelmed."
+        },
+        "prior_relationship": { "type": "string", "enum": ["none", "established"] },
+        "register_selected": {
+          "type": "string",
+          "description": "Open vocabulary; suggested values: brisk, slow, warm, firm, playful, grave, matter-of-fact."
+        },
+        "why": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What in the presentation drove the register choice. This is the payload."
+        }
+      },
+      "additionalProperties": false
+    },
+    "move": {
+      "type": "object",
+      "required": ["description", "discriminating_feature"],
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "What you did and what you were going for."
+        },
+        "discriminating_feature": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The thing that made this call rather than another."
+        }
+      },
+      "additionalProperties": false
+    },
+    "in_frame_response": {
+      "type": "string",
+      "description": "Observable shift in the patient, if any."
+    },
+    "outcome": {
+      "type": "object",
+      "description": "Deferred pass; joined later by session_id. Absent at annotation time.",
+      "properties": {
+        "plan_accepted": { "type": ["boolean", "null"] },
+        "adherence_known": { "type": "string", "enum": ["filled", "not-filled", "unknown"] },
+        "return_72h": { "type": ["boolean", "null"] },
+        "source": { "type": "string", "enum": ["chart", "callback", "unknown"] }
+      },
+      "additionalProperties": false
+    },
+    "self_rating": {
+      "type": "object",
+      "required": ["worked", "confidence"],
+      "properties": {
+        "worked": {
+          "type": "integer",
+          "enum": [0, 1],
+          "description": "0 = the move failed. Failures are required corpus content (plan 4, non-negotiable)."
+        },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "schema_gap": {
+      "type": "string",
+      "description": "What mattered in this encounter that the fields above could NOT capture. For capture=memory records this field is the point of the exercise (plan 9.4); keep it for recordings too."
+    },
+    "annotated_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "capture": { "const": "recording" } } },
+      "then": { "required": ["clip"] }
+    }
+  ],
+  "additionalProperties": false
+}
