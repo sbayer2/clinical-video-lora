@@ -396,6 +396,47 @@ Three new integration tests cover the flow (17 total).
 
 ---
 
+## ADC-012 — Machine annotation as test scaffolding, unmixable by construction (adopted)
+
+**Context.** User direction 2026-07-23: switch off the human annotator and
+let an AI annotate clips at scale, to test the harness theory (that
+schema-conditioned clips can fine-tune a register-modulating adapter).
+
+**Decision.** Build it — with a hard boundary on what it is for. The plan's
+own analysis (sections 4.2, 8.4–8.5) says the scarce asset is the
+clinician's *privileged read*; an AI watching tape can only annotate
+appearances, so a machine-annotated corpus used as training ground truth
+would be the medfit failure with better production values. Therefore:
+
+- **Legitimate uses**: end-to-end pipeline validation (clips → records →
+  adapter training → section-6 evals); testing whether the conditioning
+  pathway produces register modulation at all (labels need only be
+  consistent, not true, for that); schema stress-testing at scale;
+  candidate-detection assistance. **Illegitimate use**: passing machine
+  records off as the corpus.
+- **Unmixable by construction**: machine records are written to their own
+  JSONL under `scripts/out/ai_annotations/` wrapped in `{annotator:
+  "machine", model, prompt_sha256, tool, source_sha256, window, record}`
+  provenance — never into the annotator's SQLite DB. The record inside the
+  wrapper stays schema-pure and passes the same canonical jsonschema gate
+  the human UI uses (one retry with errors fed back).
+- Implementation: `derive/ai_annotate.py` — per ~5-min window, sampled
+  frames (ffmpeg) + cached mlx-whisper transcript slice + light
+  paralinguistics (VAD pauses, RMS spread, speech rate) → claude-opus-4-8
+  with adaptive thinking; the prompt instructs the model it is annotating
+  appearances, not inner state, and to reflect that in confidence.
+- The system prompt's definitions of read/move/discriminating-feature are
+  hashed into provenance (`prompt_sha256`) so machine records from
+  different prompt versions never silently mix either.
+
+**Next.** Agreement experiment: the user annotates ~20 clips blind, the
+machine annotates the same 20, per-field agreement is measured. Fields
+where they diverge (predicted: `why`, `discriminating_feature`) measure
+exactly which fields carry the privileged human signal — the empirical
+justification for the human-in-the-seat design.
+
+---
+
 ## ADC-011 — Annotation UI clip-review loop (done, v0)
 
 **Context.** ADC-005 settled the architecture (web + vanilla JS + local
