@@ -471,6 +471,52 @@ annotation DB with it). Media now lives in repo-local gitignored
 `media/archive/`; the incident is the plan's own immutable-store
 discipline demonstrated on scaffolding.
 
+**Agreement experiment, round 1 (2026-07-23): 10 blind human
+annotations vs the frozen Opus records.** Headline numbers: clip
+overlap 1/10 (mean IoU 0.04), segment_class 1/10, affect Jaccard 0.23,
+register Jaccard 0.33, worked 9/10. Interpretation, carefully:
+
+- *Selection disagreement is the dominant effect — and it confounds
+  everything downstream.* In 9/10 windows the human and machine chose
+  different moments, so field disagreement partly measures "describing
+  different events," not "reading the same event differently." The one
+  overlapping pair (blind_01) agreed on class, affect, AND register —
+  weak but suggestive evidence that field agreement is high when the
+  moment is shared. Round 2 needs a fixed-clip condition: both
+  annotators on the machine's exact clip bounds, isolating field
+  agreement from selection.
+- *Measurement artifact:* 5/10 human clips were single-frame marks
+  (I without O) — the human annotated moment-pointers, the machine
+  annotated spans. IoU is mechanically depressed; selection centers
+  still genuinely diverge. UI finding: consider an explicit
+  point-vs-span affordance or a minimum-span nudge.
+- *The segment_class enum failed inter-rater reliability* (1/10, with
+  reassurance/instruction-delivery/refusal-conversion assigned to the
+  same behaviors). Third candidate schema revision, and the most
+  serious: the section-6 modulation eval keys on class labels. Needs
+  either anchored definitions with examples or collapse into fewer,
+  more codable classes.
+- *The human signal showed up exactly where predicted — judgment, not
+  articulation.* The only worked=0 in the dataset is the human's
+  (blind_09: read the opening as a failed, brisk, closed-ended
+  exchange where the machine approvingly described textbook technique
+  — an evaluative divergence, not a descriptive one). And the human's
+  best schema_gap ("female patient... the move would be different")
+  names demographic conditioning of move selection — a modulation
+  dimension the machine never surfaced. Machine worked=0 count remains
+  zero across all 20 records.
+- *Honest asymmetry in the other direction:* on third-party tape the
+  machine's free text is far denser and more specific than the
+  human's quick-pass notes ("to be friendly", "the situation"). For
+  Tier-3-style commentary on someone else's encounter, the model
+  out-articulates a hurried expert. This does NOT test the plan's
+  core asset — the clinician annotating their OWN encounter with the
+  privileged read — which round 1 structurally could not measure.
+
+Caveats: n=10, staged instructional films, single quick-pass human
+round, third-party annotation for both sides. Next: fixed-clip round 2;
+segment_class anchoring; Qwen3-Omni three-way once downloaded.
+
 ---
 
 ## ADC-011 — Annotation UI clip-review loop (done, v0)
