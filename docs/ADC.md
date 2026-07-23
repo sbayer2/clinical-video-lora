@@ -435,6 +435,42 @@ where they diverge (predicted: `why`, `discriminating_feature`) measure
 exactly which fields carry the privileged human signal — the empirical
 justification for the human-in-the-seat design.
 
+**First run (2026-07-23, claude-opus-4-8, 3 archive.org films, 12
+windows → 10 valid records, ~56k in / 15k out tokens ≈ $0.63).**
+Findings:
+
+- *Moment selection is genuinely competent.* On the psychotherapeutic
+  film it independently found the real technique moments — verbatim
+  word-echoing on a dropped affect word ("temper"), reframing a refused
+  question as low-stakes guessing, the tentative return-visit offer that
+  yields control to the patient. `why`/`discriminating_feature` content
+  is specific and evidence-anchored, not plausible mush.
+- *schema_gap works at machine scale.* Three consistent gap classes
+  surfaced: (a) all three films correctly identified as staged/
+  instructional footage, with the caveat that read and response are
+  partly scripted; (b) **the single-moment record cannot represent
+  iterative multi-turn technique loops** (probe→deflect→reframe
+  ratcheting across exchanges) — a second candidate schema revision
+  after the patient-state-observable class from human use; (c) `worked`
+  semantics assume plan-acceptance and fit psychotherapy insight-work
+  poorly.
+- *Positivity bias confirmed: all 10 records scored `worked=1`.* The
+  machine found only wins — no contrast class, exactly the
+  everything-reads-as-competent defect the plan diagnosed in medfit
+  (section 4, non-negotiable). Machine annotation cannot be trusted to
+  label failures; this is now an empirical argument, not a prediction.
+- Confidence was appropriately hedged (0.2–0.7) and lowest where footage
+  was most clearly staged. Open-vocabulary drift observed: multi-value
+  registers ("slow, warm, tentative") and temporal affect compounds
+  ("guarded, minimizing then engaged") — harmless schema-wise, but the
+  agreement experiment needs a normalization rule before comparing.
+
+Operational note: the first run died because working media lived in the
+session scratchpad, which macOS purged overnight (taking the trial
+annotation DB with it). Media now lives in repo-local gitignored
+`media/archive/`; the incident is the plan's own immutable-store
+discipline demonstrated on scaffolding.
+
 ---
 
 ## ADC-011 — Annotation UI clip-review loop (done, v0)
