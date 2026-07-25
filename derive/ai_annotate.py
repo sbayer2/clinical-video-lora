@@ -178,7 +178,13 @@ def main() -> None:
 
     schema = load_schema()
     validator = jsonschema.Draft202012Validator(schema)
-    client = anthropic.Anthropic()
+    # The API key lives in a locked-down file, NOT in shell profiles: an
+    # exported ANTHROPIC_API_KEY is inherited by every shell including the
+    # one that launches Claude Code, which then bills sessions to the key
+    # instead of the user's subscription. Learned the expensive way.
+    key_file = Path.home() / ".config" / "anthropic-derive.key"
+    api_key = key_file.read_text().strip() if key_file.exists() else None
+    client = anthropic.Anthropic(api_key=api_key)  # None -> env/default chain
     print(f"model: {MODEL}, prompt: {prompt_sha()}")
 
     total_usage = {"input": 0, "output": 0}
