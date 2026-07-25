@@ -29,12 +29,14 @@ import jsonschema
 import numpy as np
 
 from .common import (
+    CACHE_DIR,
     OUT_DIR,
     REPO_ROOT,
     SYSTEM_PROMPT,
     extract_audio_window,
     extract_frame_jpegs,
     extract_json,
+    generation_schema,
     load_schema,
     media_duration,
     prompt_sha,
@@ -83,23 +85,37 @@ def read_wav_f32(path: Path) -> np.ndarray:
 
 
 def annotate_window(model, processor, config, schema, validator, session_id,
-                    t0, t1, frame_paths, audio_path):
+                    t0, t1, frame_paths, audio_path, raw_dump: Path):
     from mlx_vlm import generate
+    from mlx_vlm.structured import build_json_schema_logits_processor
 
+    gen_schema = generation_schema(schema)
     prompt = build_prompt(
-        processor, config, session_id, t0, t1, schema,
+        processor, config, session_id, t0, t1, gen_schema,
         n_images=len(frame_paths), n_audios=1,
     )
+    # Constrained decoding (llguidance): the decoder masks any token that
+    # would violate the schema, so malformed JSON, <|im_start|> loops, and
+    # empty outputs are structurally impossible. The generation schema
+    # excludes pipeline-stamped fields (record_id/annotated_at) — leaving
+    # them required forces small models into degenerate UUID zero-collapse
+    # (observed: record_id "r-0000..."). The prompt embeds the same schema
+    # so instruction and constraint agree. Canonical validation still runs
+    # afterward.
+    tokenizer = getattr(processor, "tokenizer", processor)
+    lp = build_json_schema_logits_processor(tokenizer, gen_schema)
     started = time.perf_counter()
     result = generate(
         model, processor, prompt,
         image=[str(p) for p in frame_paths],
         audio=[read_wav_f32(audio_path)],
         max_tokens=MAX_TOKENS,
+        logits_processors=[lp],
         verbose=False,
     )
     elapsed = time.perf_counter() - started
     text = result.text if hasattr(result, "text") else str(result)
+    raw_dump.write_text(text)
 
     record = extract_json(text)
     record["record_id"] = str(uuid.uuid4())
@@ -144,10 +160,12 @@ def main() -> None:
                     fp = tmp / f"w{i}_f{t}.jpg"
                     fp.write_bytes(jpg)
                     frame_paths.append(fp)
+                raw_dump = CACHE_DIR / f"{session_id}.w{i}.qwen3omni.raw.txt"
+                raw_dump.parent.mkdir(parents=True, exist_ok=True)
                 try:
                     record, elapsed = annotate_window(
                         model, processor, config, schema, validator,
-                        session_id, t0, t1, frame_paths, audio,
+                        session_id, t0, t1, frame_paths, audio, raw_dump,
                     )
                 except Exception as e:  # report per window, keep going
                     print(f"  window {t0:.0f}-{t1:.0f}s FAILED: {e}")

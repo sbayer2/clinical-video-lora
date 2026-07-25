@@ -549,6 +549,41 @@ memory instrument, where "you" is correct). Round 2 protocol: fixed
 clips, anchored construct definitions visible in the UI, no time
 pressure, and fewer clips if that is what unhurried costs.
 
+**Local-model arm (2026-07-23 night): Qwen3-Omni-30B-A3B-4bit via
+mlx-vlm, same 10 windows, native audio+frames input.** Getting it
+running took three fixes worth remembering: (1) transformers
+constructs the video sub-processor eagerly → torch+torchvision
+required in the mlx-vlm venv; (2) mlx-vlm 0.6.3 generate() hands audio
+path strings to the HF processor, bypassing its own load_audio → pass
+float32 arrays; (3) small-model degeneration — with record_id required
+in the schema, greedy decoding collapsed into zero-loops
+("r-0000...") and <|im_start|> repetition. The durable fix:
+**llguidance constrained decoding against a generation schema** (canonical
+minus pipeline-stamped fields) — after which 10/10 windows produced
+valid records at **7–10 s per window, fully local, zero cost**.
+
+Three-way results (human / Opus / Qwen on identical windows):
+- **Quality gap is large and in Opus's favor.** Qwen's why+move
+  averages 189 chars vs Opus's ~500–700, and the content is
+  captioning-level ("patient is stoic and not expressing pain";
+  discriminating_feature "patient is not in pain" — not a
+  discrimination). Qwen failed selection outright on 3/10 windows
+  (clip = entire window, the section-4.1 anti-pattern) and produced
+  3–10 s micro-clips on several others; clip IoU vs Opus 0.08.
+- **The user's cost hypothesis is answered: results are NOT similar.**
+  Opus is much stronger at this task. Qwen-as-annotator is at best a
+  candidate-detection assistant; but the local path retains its
+  irreplaceable role — it is the only architecture legal for real PHI
+  capture, so the question becomes which larger/better local model
+  clears the bar, not whether to use the cloud on patient media.
+- **segment_class reliability collapses further with three raters:**
+  pairwise matches human–Opus 1/10, human–Qwen 2/10, Opus–Qwen 4/10 —
+  near chance for a six-class taxonomy. This is now the schema's
+  best-attested defect.
+- **Failure labeling is confirmed machine-universal at n=20:**
+  Opus 0/10 and Qwen 0/10 worked=0 (Qwen at confidence 0.95);
+  the round's only worked=0 remains the human's.
+
 ---
 
 ## ADC-011 — Annotation UI clip-review loop (done, v0)

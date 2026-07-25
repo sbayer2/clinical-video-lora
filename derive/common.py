@@ -123,6 +123,18 @@ def sanitized_schema(schema: dict) -> dict:
     return s
 
 
+def generation_schema(schema: dict) -> dict:
+    """Sanitized schema for the MODEL to generate against: pipeline-stamped
+    fields (record_id, annotated_at) removed from properties and required.
+    Leaving them in makes small models emit degenerate UUID strings —
+    observed as zero-collapse ("r-0000...") on Qwen3-Omni at temp 0."""
+    s = sanitized_schema(schema)
+    for field in ("record_id", "annotated_at"):
+        s.get("properties", {}).pop(field, None)
+    s["required"] = [r for r in s.get("required", []) if r not in ("record_id", "annotated_at")]
+    return s
+
+
 def prompt_sha() -> str:
     return hashlib.sha256(SYSTEM_PROMPT.encode()).hexdigest()[:16]
 
