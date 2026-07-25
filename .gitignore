@@ -30,3 +30,6 @@ sessions/
 memory_records*.json
 *.db
 *.jsonl
+
+# Training exports (regenerable from records)
+data/

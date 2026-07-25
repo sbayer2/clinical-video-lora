@@ -99,7 +99,8 @@ def read_wav_f32(path: Path) -> np.ndarray:
 
 
 def annotate_window(model, processor, config, schema, validator, session_id,
-                    t0, t1, frame_paths, audio_path, raw_dump: Path):
+                    t0, t1, frame_paths, audio_path, raw_dump: Path,
+                    temperature: float = 0.0):
     from mlx_vlm import generate
     from mlx_vlm.structured import build_json_schema_logits_processor
 
@@ -125,6 +126,7 @@ def annotate_window(model, processor, config, schema, validator, session_id,
         audio=[read_wav_f32(audio_path)],
         max_tokens=MAX_TOKENS,
         logits_processors=[lp],
+        temperature=temperature,
         verbose=False,
     )
     elapsed = time.perf_counter() - started
@@ -155,6 +157,9 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("media", type=Path, nargs="+")
     parser.add_argument("--window-mins", type=float, default=5.0)
+    parser.add_argument("--temperature", type=float, default=0.0)
+    parser.add_argument("--out-tag", default="",
+                        help="suffix so multi-pass runs don't overwrite (e.g. w2, w1, w2t7)")
     args = parser.parse_args()
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -169,7 +174,8 @@ def main() -> None:
         duration = media_duration(path)
         print(f"\n=== {session_id} ({duration/60:.1f} min)")
         source_hash = sha256_file(path)
-        out_path = OUT_DIR / f"{session_id}.qwen3omni.jsonl"
+        tag = f".{args.out_tag}" if args.out_tag else ""
+        out_path = OUT_DIR / f"{session_id}.qwen3omni{tag}.jsonl"
         records = []
         window = args.window_mins * 60
         n_windows = max(1, round(duration / window))
@@ -183,12 +189,13 @@ def main() -> None:
                     fp = tmp / f"w{i}_f{t}.jpg"
                     fp.write_bytes(jpg)
                     frame_paths.append(fp)
-                raw_dump = CACHE_DIR / f"{session_id}.w{i}.qwen3omni.raw.txt"
+                raw_dump = CACHE_DIR / f"{session_id}{tag}.w{i}.qwen3omni.raw.txt"
                 raw_dump.parent.mkdir(parents=True, exist_ok=True)
                 try:
                     record, telemetry = annotate_window(
                         model, processor, config, schema, validator,
                         session_id, t0, t1, frame_paths, audio, raw_dump,
+                        temperature=args.temperature,
                     )
                 except Exception as e:  # report per window, keep going
                     print(f"  window {t0:.0f}-{t1:.0f}s FAILED: {e}")
@@ -198,6 +205,11 @@ def main() -> None:
                     source=path, source_hash=source_hash, t0=t0, t1=t1,
                 )
                 wrapped["telemetry"] = telemetry
+                wrapped["generation"] = {
+                    "temperature": args.temperature,
+                    "window_mins": args.window_mins,
+                    "tag": args.out_tag,
+                }
                 records.append(wrapped)
                 r = record
                 print(
