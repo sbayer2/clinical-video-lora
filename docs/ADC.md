@@ -517,6 +517,38 @@ Caveats: n=10, staged instructional films, single quick-pass human
 round, third-party annotation for both sides. Next: fixed-clip round 2;
 segment_class anchoring; Qwen3-Omni three-way once downloaded.
 
+**CORRECTION (2026-07-23 evening, annotator disclosure).** The human
+annotator disclosed after the fact: the round was rushed toward the
+end, "register" was not confidently understood on the older
+psychotherapy material (voice? nonverbal? both?), the form's
+second-person "move" framing ("what you did") confused third-party
+annotation, and on their own review the machine's picks and
+annotations were stronger than theirs. Consequences, stated
+explicitly rather than quietly revised:
+
+- The *selection-divergence finding is downgraded*: 1/10 overlap can
+  no longer be read as judgment divergence — rushing alone predicts
+  grab-first-salient-moment vs. survey-the-window. Round 1 measures
+  an unhurried machine against a hurried human, which is not the
+  comparison of interest.
+- The *human-judgment-signal claims are weakened* (the worked=0 and
+  the demographic-conditioning schema_gap stand as observations but
+  carry less evidential weight from a rushed pass).
+- One finding is *strengthened*: the schema failed a more basic test
+  than field agreement — **construct clarity**. If the plan's own
+  author cannot confidently apply "register" and "move" to tape, the
+  instrument under-defines its central constructs. This is exactly
+  the class of defect the 9.4 memory test exists to catch, caught
+  earlier and cheaper.
+- The machine-side findings are untouched (0-for-20 failure labeling;
+  articulate, evidence-anchored free text).
+
+Fixes applied: register definition and subject-neutral move wording
+added to the annotator form (self-annotation wording retained in the
+memory instrument, where "you" is correct). Round 2 protocol: fixed
+clips, anchored construct definitions visible in the UI, no time
+pressure, and fewer clips if that is what unhurried costs.
+
 ---
 
 ## ADC-011 — Annotation UI clip-review loop (done, v0)

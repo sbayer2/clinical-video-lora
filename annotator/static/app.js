@@ -58,15 +58,18 @@ function buildForm() {
       <div><label for="register_selected">Register selected</label>
         <input type="text" id="register_selected" list="registers" required>${datalist("registers", SUGGEST.register_selected)}</div>
       </div>
-      <label for="why">Why <span class="opt">— what in the presentation drove the register choice (the payload)</span></label>
+      <p class="opt" style="margin:.4rem 0 0">Register = the whole delivery mode selected, not just voice:
+        prosody (pace, volume, pitch), pacing and pauses, stance/nonverbals, and word choice.
+        It is the thing that changes when the read changes.</p>
+      <label for="why">Why <span class="opt">— what in the patient's presentation drove the register choice (the payload)</span></label>
       <textarea id="why" required></textarea>
     </fieldset>`),
     el(`<fieldset><legend>The move</legend>
-      <label for="move_description">Description <span class="opt">— what you did and what you were going for</span></label>
+      <label for="move_description">Description <span class="opt">— what the clinician did communicatively and what it was going for</span></label>
       <textarea id="move_description" required></textarea>
-      <label for="discriminating_feature">Discriminating feature <span class="opt">— what made this call rather than another</span></label>
+      <label for="discriminating_feature">Discriminating feature <span class="opt">— what made this the right call rather than a plausible alternative</span></label>
       <textarea id="discriminating_feature" required></textarea>
-      <label for="in_frame_response">In-frame response <span class="opt">— observable shift, if any</span></label>
+      <label for="in_frame_response">In-frame response <span class="opt">— observable patient shift after the move, if any</span></label>
       <textarea id="in_frame_response"></textarea>
     </fieldset>`),
     el(`<fieldset><legend>Self-rating — failures are required corpus content</legend><div class="grid">
