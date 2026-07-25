@@ -677,3 +677,57 @@ suggestions anchor — a negative-only list would have skewed the corpus's
 read vocabulary toward the dramatic half of the register space.
 Balanced with positive/neutral states everywhere the vocabulary lives
 (annotator, memory instrument, schema description).
+
+---
+
+## ADC-013 — Proof-of-concept adapter loop: the harness closes end to end (done)
+
+**Context.** User direction 2026-07-25: multiply local-model annotations
+over the existing footage, train an adapter on the resulting labels, and
+verify the harness mechanism — explicitly proof of concept, not ground
+truth (the ADC-012 sanctioned use: consistency, not truth).
+
+**What ran.** 101 Qwen3-Omni records over three window granularities and
+two temperatures (multi-pass generation, ~10 s/window, provenance carries
+generation params) → `derive/export_training.py` transformed records +
+cached transcripts into 91/10 (situation + read) → (clinician's actual
+lines) chat pairs plus 18 modulation probes → LoRA on Qwen3-8B-4bit
+(mlx-lm, 9.7M trainable = 0.118%, six minutes, val loss bottomed at
+iter 100 of 300 — textbook memorization of a 91-pair corpus after ~2
+epochs; best-val checkpoint used for eval) → section-6 floor evals,
+base vs adapter on identical prompts.
+
+**Results, honestly:**
+- **The loop closes.** Footage → machine records → export → adapter →
+  eval, every stage mechanically working. That was the PoC's claim and
+  it is demonstrated.
+- **Style transfer is visible.** Where coherent, the adapter speaks the
+  corpus's idiom — "I'm going to push your head and shoulders in a
+  couple of directions... tell me if it hurts", "I wonder if you'd
+  want to...", "Well, Mr. Kramer" — against the base's modern
+  therapeutic assistant voice. Form transferred, exactly as the plan's
+  section-1 analysis (LIMA, medfit) predicts LoRA does.
+- **Degeneration dominates about half the adapter outputs**: verbatim
+  memorized fragments looping ("Any pain or discomfort? No." twelve
+  times) — 91 pairs is memorization territory, and greedy decoding
+  loops it.
+- **The best finding is the "No." loop itself: the adapter learned to
+  speak the patient's lines.** The undiarized-transcript impurity
+  flagged at export surfaced precisely as predicted — empirical,
+  training-side validation of the plan's section-3 rig requirement
+  (separate per-speaker tracks are not audiophilia, they are label
+  hygiene).
+- Modulation metric: base 0.192 vs adapter 0.182 pairwise similarity —
+  near-tie, both differentiate registers lexically; the instruct base
+  already modulates on prompt alone, and adapter degeneration corrupts
+  its half of the comparison. The modulation question needs a bigger,
+  cleaner corpus to answer — which is the plan's actual proposal.
+- Fabrication probe: 0 base, 0 adapter (weak evidence given
+  degeneration, but no medfit-style invented numbers).
+
+**Consequences.** The harness mechanism is verified; the binding
+constraints are now empirical rather than argued: corpus scale
+(hundreds of pairs memorize; the throughput model's thousands are the
+relevant regime), diarization (per-speaker capture before any real
+training), and dedup/decoding hygiene for tiny-corpus adapters. The
+PoC changes no plan decisions — it confirms the ones already made.
