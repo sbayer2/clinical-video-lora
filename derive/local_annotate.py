@@ -22,9 +22,11 @@ import sys
 import tempfile
 import time
 import uuid
+import wave
 from pathlib import Path
 
 import jsonschema
+import numpy as np
 
 from .common import (
     OUT_DIR,
@@ -71,6 +73,15 @@ def build_prompt(processor, config, session_id: str, t0: float, t1: float,
         return apply_chat_template(processor, config, task, num_images=n_images)
 
 
+def read_wav_f32(path: Path) -> np.ndarray:
+    """16 kHz mono PCM16 WAV -> float32 array. mlx-vlm 0.6.3's generate()
+    hands raw path strings to the HF processor (bypassing its own
+    load_audio), so we load the samples ourselves."""
+    with wave.open(str(path), "rb") as w:
+        data = np.frombuffer(w.readframes(w.getnframes()), dtype=np.int16)
+    return data.astype(np.float32) / 32768.0
+
+
 def annotate_window(model, processor, config, schema, validator, session_id,
                     t0, t1, frame_paths, audio_path):
     from mlx_vlm import generate
@@ -83,7 +94,7 @@ def annotate_window(model, processor, config, schema, validator, session_id,
     result = generate(
         model, processor, prompt,
         image=[str(p) for p in frame_paths],
-        audio=[str(audio_path)],
+        audio=[read_wav_f32(audio_path)],
         max_tokens=MAX_TOKENS,
         verbose=False,
     )
