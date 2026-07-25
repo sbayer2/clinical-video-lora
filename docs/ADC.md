@@ -731,3 +731,38 @@ constraints are now empirical rather than argued: corpus scale
 relevant regime), diarization (per-speaker capture before any real
 training), and dedup/decoding hygiene for tiny-corpus adapters. The
 PoC changes no plan decisions — it confirms the ones already made.
+
+---
+
+## ADC-014 — Scale challenge: 500-pair corpus, generalization test (in progress)
+
+**Context.** User direction 2026-07-25, challenging ADC-013's memorizing
+PoC: scale to ~500 distinct pairs, train past memorization, and challenge
+with prompts the corpus never saw. Phases A–C approved autonomous.
+
+**What was built.** Corpus expanded to ~6.8 h across 14 films (the
+Gloria trilogy — Rogers/Perls/Ellis, three maximally different registers
+on the same patient — plus Beck, Meichenbaum, the remaining
+Psychotherapeutic Interviewing parts, a modern MI session, Stanford
+pelvic exam, neuro history-taking). 653 machine records → export v2
+(completion-text AND span-overlap dedup; validation = fully held-out
+film) → **483 train pairs from 13 films + 64 validation pairs from
+held-out beck_richard**. Training: two-LR sweep, batch 4, ~3 epochs,
+--mask-prompt (loss on delivery text only), best-val checkpoint wins.
+Validation is text-prompt only by design — the adapter is a text model;
+audio/video exist only upstream in the annotator.
+
+**Success criteria, stated before the eval ran:**
+- Loop-rate ≈ 0 on both suites (PoC failure mode gone);
+- OOD 8-gram overlap with training completions low (< ~0.10) — outputs
+  composed, not retrieved;
+- Modulation: adapter pairwise similarity ≤ base, with register shifts
+  the physician judges appropriate in the blind A/B;
+- Zero fabricated numbers.
+
+**Failure looks like:** film-era content injected into 2026 urgent-care
+scenarios — which would itself be the finding that form transfers at
+~500 pairs but generalization needs the corpus scale the throughput
+model projects. Either outcome informs the plan.
+
+**Results.** Pending — recorded below when the eval completes.
