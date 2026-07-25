@@ -48,11 +48,25 @@ MODEL_ID = "mlx-community/Qwen3-Omni-30B-A3B-Instruct-4bit"
 MAX_TOKENS = 2000
 
 
+MAX_AUDIO_SECS = 400  # must cover the longest window
+
+
 def load_model():
     from mlx_vlm import load
 
     print(f"loading {MODEL_ID} (first run downloads ~22 GB)...")
-    return load(MODEL_ID)
+    model, processor = load(MODEL_ID)
+    # WhisperFeatureExtractor truncates to chunk_length (30 s) by default,
+    # which silently fed the model only the first 30 s of each window on the
+    # first run — invalidating the cloud/local comparison. The audio tower
+    # itself is chunked and variable-length; raise the extractor cap so the
+    # full window survives.
+    fe = processor.feature_extractor
+    fe.chunk_length = MAX_AUDIO_SECS
+    fe.n_samples = MAX_AUDIO_SECS * fe.sampling_rate
+    fe.nb_max_frames = fe.n_samples // fe.hop_length
+    print(f"audio cap raised: {fe.chunk_length}s ({fe.nb_max_frames} mel frames)")
+    return model, processor
 
 
 def build_prompt(processor, config, session_id: str, t0: float, t1: float,
@@ -116,6 +130,15 @@ def annotate_window(model, processor, config, schema, validator, session_id,
     elapsed = time.perf_counter() - started
     text = result.text if hasattr(result, "text") else str(result)
     raw_dump.write_text(text)
+    telemetry = {
+        "seconds": round(elapsed, 1),
+        "audio_secs_in": round(t1 - t0, 1),
+        "prompt_tokens": getattr(result, "prompt_tokens", None),
+        "generation_tokens": getattr(result, "generation_tokens", None),
+        "prompt_tps": round(getattr(result, "prompt_tps", 0.0), 1),
+        "generation_tps": round(getattr(result, "generation_tps", 0.0), 1),
+        "peak_memory_gb": round(getattr(result, "peak_memory", 0.0), 2),
+    }
 
     record = extract_json(text)
     record["record_id"] = str(uuid.uuid4())
@@ -125,7 +148,7 @@ def annotate_window(model, processor, config, schema, validator, session_id,
         raise RuntimeError(
             "failed canonical validation: " + "; ".join(e.message for e in errors[:5])
         )
-    return record, elapsed
+    return record, telemetry
 
 
 def main() -> None:
@@ -163,23 +186,27 @@ def main() -> None:
                 raw_dump = CACHE_DIR / f"{session_id}.w{i}.qwen3omni.raw.txt"
                 raw_dump.parent.mkdir(parents=True, exist_ok=True)
                 try:
-                    record, elapsed = annotate_window(
+                    record, telemetry = annotate_window(
                         model, processor, config, schema, validator,
                         session_id, t0, t1, frame_paths, audio, raw_dump,
                     )
                 except Exception as e:  # report per window, keep going
                     print(f"  window {t0:.0f}-{t1:.0f}s FAILED: {e}")
                     continue
-                records.append(wrap_record(
+                wrapped = wrap_record(
                     record, model=MODEL_ID, tool="derive.local_annotate",
                     source=path, source_hash=source_hash, t0=t0, t1=t1,
-                ))
+                )
+                wrapped["telemetry"] = telemetry
+                records.append(wrapped)
                 r = record
                 print(
                     f"  {t0:6.0f}-{t1:6.0f}s -> {r['segment_class']:<21} "
                     f"clip {r['clip']['t_start']:.0f}-{r['clip']['t_end']:.0f}s  "
                     f"affect={r['read']['affect_observed']}, "
-                    f"register={r['read']['register_selected']}  ({elapsed:.0f}s)"
+                    f"register={r['read']['register_selected']}  "
+                    f"[{telemetry['seconds']}s, {telemetry['prompt_tokens']} ptok, "
+                    f"peak {telemetry['peak_memory_gb']}GB]"
                 )
         out_path.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in records) + "\n")
         print(f"  wrote {len(records)} record(s) to {out_path.relative_to(REPO_ROOT)}")

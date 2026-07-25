@@ -124,11 +124,26 @@ def sanitized_schema(schema: dict) -> dict:
 
 
 def generation_schema(schema: dict) -> dict:
-    """Sanitized schema for the MODEL to generate against: pipeline-stamped
-    fields (record_id, annotated_at) removed from properties and required.
-    Leaving them in makes small models emit degenerate UUID strings —
-    observed as zero-collapse ("r-0000...") on Qwen3-Omni at temp 0."""
-    s = sanitized_schema(schema)
+    """Schema for the MODEL to generate against: pipeline-stamped fields
+    (record_id, annotated_at) removed — leaving them in makes small models
+    emit degenerate UUID strings (observed zero-collapse "r-0000..." on
+    Qwen3-Omni at temp 0). Unlike the cloud sanitized_schema, minLength is
+    KEPT: llguidance supports it, and without it greedy constrained
+    decoding can legally emit empty strings."""
+    s = copy.deepcopy(schema)
+
+    def strip(node):
+        if isinstance(node, dict):
+            node.pop("allOf", None)
+            node.pop("$schema", None)
+            node.pop("$id", None)
+            for v in node.values():
+                strip(v)
+        elif isinstance(node, list):
+            for v in node:
+                strip(v)
+
+    strip(s)
     for field in ("record_id", "annotated_at"):
         s.get("properties", {}).pop(field, None)
     s["required"] = [r for r in s.get("required", []) if r not in ("record_id", "annotated_at")]

@@ -562,27 +562,60 @@ in the schema, greedy decoding collapsed into zero-loops
 minus pipeline-stamped fields) — after which 10/10 windows produced
 valid records at **7–10 s per window, fully local, zero cost**.
 
-Three-way results (human / Opus / Qwen on identical windows):
-- **Quality gap is large and in Opus's favor.** Qwen's why+move
-  averages 189 chars vs Opus's ~500–700, and the content is
-  captioning-level ("patient is stoic and not expressing pain";
-  discriminating_feature "patient is not in pain" — not a
-  discrimination). Qwen failed selection outright on 3/10 windows
-  (clip = entire window, the section-4.1 anti-pattern) and produced
-  3–10 s micro-clips on several others; clip IoU vs Opus 0.08.
-- **The user's cost hypothesis is answered: results are NOT similar.**
-  Opus is much stronger at this task. Qwen-as-annotator is at best a
-  candidate-detection assistant; but the local path retains its
-  irreplaceable role — it is the only architecture legal for real PHI
-  capture, so the question becomes which larger/better local model
-  clears the bar, not whether to use the cloud on patient media.
-- **segment_class reliability collapses further with three raters:**
-  pairwise matches human–Opus 1/10, human–Qwen 2/10, Opus–Qwen 4/10 —
-  near chance for a six-class taxonomy. This is now the schema's
-  best-attested defect.
-- **Failure labeling is confirmed machine-universal at n=20:**
-  Opus 0/10 and Qwen 0/10 worked=0 (Qwen at confidence 0.95);
-  the round's only worked=0 remains the human's.
+**INVALIDATED first three-way conclusion, and the correction.** The
+initial verdict ("quality gap large in Opus's favor, results NOT
+similar") was **confounded and is retracted**. The user challenged it
+on three grounds — n too small for "not subtle," possible evaluator
+bias (an Anthropic model judging an Anthropic model favorably), and
+no memory-footprint telemetry consistent with heavy multimodal work.
+Investigation vindicated the challenge: **WhisperFeatureExtractor
+silently truncates audio to 30 s** (chunk_length default), so Qwen
+annotated 4–6-minute windows having heard only the first 30 seconds
+while Opus received full-window transcripts. The behavioral evidence
+was in plain sight — Qwen's selections clustered at window starts —
+and misattributed to model capability. A second confound: the
+llguidance grammar had minLength stripped (a cloud-path habit),
+letting greedy decoding legally emit near-empty strings. Fixes:
+extractor cap raised to 400 s (the audio tower is chunked and
+variable-length; the cap was only the extractor call), minLength
+restored to the generation grammar, and per-window telemetry
+(prompt_tokens, tps, peak memory) now printed and stored in record
+provenance — the instrument that would have caught this immediately.
+
+**Corrected three-way (full audio, verified by telemetry: prompt
+tokens scale ~14 tok/s of audio, 5.6k–7.6k per window; peak unified
+memory 25–27.4 GB; ~10 s/window):**
+- **Class agreement reverses: Qwen–human 4/10 is the highest pairwise
+  agreement in the experiment** (Opus–human 1/10, Qwen–Opus 2/10).
+  With full audio the local model tracks the physician's read better
+  than the frontier model did — including the @928 window (bad-news/
+  angry/firm, matching the human against Opus's refusal-conversion).
+  Caveat: at n=10 with six classes, 4/10 vs 1/10 is suggestive, not
+  significant; and no pair exceeding 4/10 keeps the taxonomy-
+  reliability defect fully in force.
+- Free text deepened (189 → 285 chars mean; the @928 read — rage
+  state as high-acuity danger requiring firm intervention — is a
+  genuine alternative clinical interpretation, not captioning), though
+  still terser than Opus's ~500–700. Whether Qwen's "clinician
+  interrupted to address dangerous affect" is accurate or confabulated
+  needs a rewatch — open item.
+- Unchanged through the correction: selection remains Qwen's weak spot
+  (3/10 whole-window clips, IoU vs Opus 0.10) and **failure labeling
+  stays machine-universal: 0/20 worked=0 across both models and both
+  runs**; the only worked=0 in the experiment remains the human's.
+- Standing verdict, properly hedged: with matched inputs the local
+  model is a credible annotation candidate, not a clearly inferior
+  one; cost/PHI/speed favor it decisively (free, on-device, ~10 s vs
+  ~$0.06 and 30–60 s per window). The decisive comparison needs round
+  2 (fixed clips, unhurried human) and a rewatch-based accuracy check
+  of both models' free text against tape.
+
+**Method lesson, recorded for the eval phase (plan section 6):** the
+first conclusion failed for want of exactly the discipline the plan
+prescribes — confound control before reading results, and suspicion of
+evaluator-convenient findings. The challenge-and-instrument loop that
+caught it (behavioral signature → hypothesis → direct test → telemetry)
+is the template for every model comparison this project runs.
 
 ---
 
