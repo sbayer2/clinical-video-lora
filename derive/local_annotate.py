@@ -167,7 +167,8 @@ def main() -> None:
     validator = jsonschema.Draft202012Validator(schema)
     model, processor = load_model()
     config = model.config
-    print(f"model loaded; prompt: {prompt_sha()}")
+    print(f"model loaded; prompt: {prompt_sha()} | window_mins={args.window_mins} "
+          f"temperature={args.temperature} tag={args.out_tag or '(none)'}")
 
     for path in args.media:
         session_id = path.stem
