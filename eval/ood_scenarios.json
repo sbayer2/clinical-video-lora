@@ -1,0 +1,17 @@
+{
+  "_readme": "Out-of-distribution urgent-care scenarios for the ADC-014 challenge eval. Each is crossed with three contrasting reads (warm/firm/brisk) at eval time. EDIT FREELY for clinical realism — this list is a draft by the assistant; the physician-author is the authority. De-identified, synthetic situations only.",
+  "scenarios": [
+    {"id": "febrile-infant", "situation": "Parent of a 9-month-old with a first febrile illness; exam is reassuring, infant is drinking and consolable."},
+    {"id": "chest-pain-panic", "situation": "34-year-old with sharp chest pain, normal ECG and workup, prior panic attacks; convinced this time is a heart attack."},
+    {"id": "teen-laceration", "situation": "17-year-old with a freshly sutured forearm laceration, minimizing everything, eager to leave for a game tonight."},
+    {"id": "viral-uri-abx", "situation": "52-year-old with three days of viral upper respiratory symptoms, firmly requesting antibiotics."},
+    {"id": "new-afib-transfer", "situation": "68-year-old with new-onset atrial fibrillation on ECG who feels fine and needs to accept emergency department transfer."},
+    {"id": "strep-hurry", "situation": "26-year-old with positive strep test who needs medication counseling and is visibly in a hurry."},
+    {"id": "missed-fracture-callback", "situation": "Callback visit: 45-year-old whose wrist X-ray was re-read as showing a fracture missed at the first visit; needs a splint and orthopedic follow-up."},
+    {"id": "child-staples", "situation": "8-year-old with a forehead laceration needing staples; the child is frightened and the parent is anxious."},
+    {"id": "pregnancy-test", "situation": "30-year-old receiving a positive pregnancy test result; their reaction so far is ambiguous."},
+    {"id": "htn-urgency", "situation": "60-year-old with blood pressure 190/110, asymptomatic, who wants to go home and 'take it easy'."},
+    {"id": "back-pain-opioids", "situation": "40-year-old with acute low back pain, no red flags, specifically requesting opioid pain medication."},
+    {"id": "first-panic-attack", "situation": "22-year-old after a first panic attack, workup negative, convinced something is seriously physically wrong."}
+  ]
+}
