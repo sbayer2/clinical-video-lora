@@ -885,3 +885,50 @@ curation shrinks the corpus below trainable size (~<300 pairs), which
 is itself a finding about the corpus's true information content.
 
 **Status: open.** Awaiting a fresh API key and the user's --go.
+
+**Results (2026-07-26).** Curation ran clean: $3.47 total (vs $3.03
+projected), 141 selections across 14 films, all seven registers
+represented. beck_richard returned 0 selections on first pass and 15 on
+a $0.45 re-run — a first-call glitch, not curatorial judgment; lesson:
+an empty selections array validates against the schema, so the curator
+script needs a non-empty retry guard, and per-film observations must be
+persisted (they currently survive only in the corpus report).
+
+The corpus report alone justified the arm: firm is speaker-entangled
+(Perls/Ellis), grave content is systematically delivered in non-grave
+registers (a labeled clinical skill the field taxonomy misses), the
+Gloria trilogy is a ready-made three-way counterfactual with patient
+testimony, and the corpus's defining gap is contextual — no
+high-acuity, established-relationship delivery anywhere.
+
+Export v3 hit the pre-registered corpus-shrink branch: 87 train / 4
+valid pairs (35 selections dropped as not-confidently-clinician — the
+diarization discipline working). Training: lr 1e-5 basin at iter 48
+(val 1.735, not comparable to v2's differently-constructed valid set).
+
+Battery, scored against the criteria as written:
+
+- **Patient-voice: FIXED.** Every sampled generation speaks as the
+  clinician — introductions, direct address, questions to the patient.
+  The v2 role-flip is absent. The speaker-attributed completions are
+  the mechanism, as pre-registered.
+- **Retained negatives: PASS.** 0 loops, 0 fabricated numbers, 0.000
+  8-gram overlap, film-style transfer present.
+- **Register isolation (primary): FAIL under multi-seed.** Seed 0 gave
+  ratio 0.62 (< 0.8, an apparent pass); seeds 1 and 2 gave 0.96 and
+  1.03. One of three seeds below threshold, sign-inconsistent — the
+  single-seed pass was noise, caught by the multi-seed rule before the
+  claim was made. Base is consistently steered (0.44/0.31/0.53).
+  Mechanism note: adapter within-register sim is 0.10–0.18 (base
+  0.44–0.60) — an 87-pair imprint yields near-maximal output entropy,
+  so the lever measurement is denominator-noise-limited; there is no
+  stable conditioning to detect.
+
+**Verdict.** Arm B improved label quality decisively (role identity
+fixed, grounded reads, the corpus map) but did not install the register
+lever at this corpus size. The structure hypothesis (Arm A:
+counterfactual same-situation/different-register pairs) is now the
+leading candidate — strengthened, not weakened, by this run: the
+curator's report hands over the counterfactual map (Gloria three-way,
+MI trainer self-contrasts, psychinterview_4 alternate takes) that a
+structural exporter would exploit. Closed.
