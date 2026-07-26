@@ -800,3 +800,39 @@ and register modulation beat base in-domain without memorization. Blind
 A/B register-fit judgment (36 items, key sealed at report end) awaits
 the physician; speaker diarization is the binding data-quality
 constraint for the next cycle.
+
+**CORRECTION (2026-07-26, user's seed-locked chat test).** The
+modulation finding above is RETRACTED. The user, testing the adapter
+in the mlx_lm chat REPL (whose fixed per-launch seed makes the first
+generation deterministic), observed token-identical outputs when only
+`Register selected:` changed — a controlled single-variable test the
+eval never ran, because the eval's three READS co-vary register with
+affect, acuity, and why-text. Instrumented follow-up (register-only
+variation across the 6-value trained vocabulary × 3 situations, plus a
+within-register resampling control, temp 0.7 / rep-penalty 1.15):
+
+| model | within-register sim | between-register sim |
+|---|---|---|
+| base | 0.447 | 0.214 |
+| adapter | 0.098 | 0.105 |
+
+Base between << within: the instruct model genuinely steers on the
+register word. Adapter between ≈ within: its output variation is
+sampling noise; the register field contributes nothing. The eval's
+"modulation 0.134 vs 0.176" measured output entropy, not register
+differentiation — the adapter beat base at randomness, not modulation.
+The fine-tune *degraded* the register sensitivity the base already
+had. An out-of-vocabulary register value ("angry") destabilizes the
+adapter into patient-voice looping.
+
+What stands: no memorization, film-style transfer, thinking
+suppression, decode-config lesson. What is now recorded as NOT
+achieved at 500 machine-annotated pairs: register conditioning — the
+central product behavior. Diagnosis (data-side): register co-varies
+with affect in every training pair (no counterfactual same-situation/
+different-register pairs — the cross-film Gloria counterfactual was
+never exported as such), and undiarized transcript completions couple
+only loosely to the annotation fields. Next-cycle requirements:
+counterfactual register pairs, per-speaker diarization, and a
+register-isolation metric (with within-register control) in the
+standard eval battery.
