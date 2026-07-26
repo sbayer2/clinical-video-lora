@@ -74,6 +74,44 @@ def fabricated(prompt: str, output: str) -> int:
     return sum(1 for n in re.findall(r"\d+(?:\.\d+)?", output) if n not in p_nums)
 
 
+ISO_REGISTERS = ["brisk", "slow", "warm", "firm", "grave", "matter-of-fact"]
+
+
+def isolation_prompt(situation: str, register: str) -> str:
+    # Everything held fixed except the register word: no why-text, since in
+    # training data why co-varies with register (the ADC-014 confound).
+    return (
+        f"Situation: {situation}\n"
+        f"Patient affect observed: frightened\n"
+        f"Acuity: low\n"
+        f"Prior relationship: none\n"
+        f"Register selected: {register}\n"
+        f"Say your next lines to the patient:"
+    )
+
+
+def isolation_suite(gen, situations: list[str]) -> dict:
+    """Register-only variation vs within-register resampling control.
+
+    ratio (between/within) ~1.0 means output variation is sampling noise —
+    the register lever is absent. Requires sampled decode (temp > 0);
+    greedy makes within-register sims trivially 1.0.
+    """
+    import itertools
+
+    between, within = [], []
+    for situation in situations:
+        outs = {reg: gen(isolation_prompt(situation, reg))
+                for reg in ISO_REGISTERS}
+        between += [jaccard(outs[a], outs[b])
+                    for a, b in itertools.combinations(ISO_REGISTERS, 2)]
+        resamples = [gen(isolation_prompt(situation, "warm")) for _ in range(3)]
+        within += [jaccard(a, b)
+                   for a, b in itertools.combinations(resamples, 2)]
+    b, w = sum(between) / len(between), sum(within) / len(within)
+    return {"between": b, "within": w, "ratio": b / w if w else float("inf")}
+
+
 def prompt_from_read(read: dict, situation: str) -> str:
     return (
         f"Situation: {situation}\n"
@@ -118,6 +156,7 @@ def make_generator(adapter_path: str | None, temp: float = 0.0,
 
 
 def main() -> None:
+    global DATA_DIR
     parser = argparse.ArgumentParser()
     parser.add_argument("--adapter", default=str(DATA_DIR / "lora_v2_best"))
     parser.add_argument("--heldout-situations", type=int, default=4)
@@ -129,7 +168,14 @@ def main() -> None:
     parser.add_argument("--no-ood", action="store_true",
                         help="held-out film suite only (in-domain test)")
     parser.add_argument("--out", default="eval_v2_report.md")
+    parser.add_argument("--data-dir", default=None,
+                        help="override data dir (e.g. data/adapter_v3)")
+    parser.add_argument("--isolation", action="store_true",
+                        help="run the register-isolation suite with "
+                             "within-register control (ADC-014 correction)")
     args = parser.parse_args()
+    if args.data_dir:
+        DATA_DIR = REPO_ROOT / args.data_dir
 
     import mlx.core as mx
     mx.random.seed(args.seed)
@@ -146,6 +192,11 @@ def main() -> None:
     stats = {}
     transcripts = []
     blind = []
+
+    isolation: dict[str, dict] = {}
+    if args.isolation and args.temp == 0:
+        raise SystemExit("--isolation requires sampled decode (--temp > 0): "
+                         "greedy makes the within-register control trivial")
 
     for label, adapter in [("base", None), ("adapter", args.adapter)]:
         gen = make_generator(adapter, temp=args.temp, top_p=args.top_p,
@@ -173,6 +224,8 @@ def main() -> None:
                 transcripts.append(f"\n## [{label}/{suite}] {situation}")
                 for reg, out in outs:
                     transcripts.append(f"\n[{reg}]\n{out}")
+        if args.isolation:
+            isolation[label] = isolation_suite(gen, heldout[:3])
         del gen
 
     mean = lambda xs: sum(xs) / len(xs) if xs else 0.0
@@ -187,6 +240,12 @@ def main() -> None:
             lines.append(
                 f"{suite:<10} {label:<8} {mean(s['sim']):<30.3f} "
                 f"{mean(s['mem']):<20.3f} {s['loops']}/{s['n']:<9} {s['fab']}")
+    if isolation:
+        lines.append("\nregister isolation (between-register sim / "
+                     "within-register control; ratio ~1.0 = lever absent)")
+        for label, iso in isolation.items():
+            lines.append(f"{label:<8} between {iso['between']:.3f}  "
+                         f"within {iso['within']:.3f}  ratio {iso['ratio']:.2f}")
     summary = "\n".join(lines)
     print(summary)
 
