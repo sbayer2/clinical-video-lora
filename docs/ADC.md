@@ -836,3 +836,52 @@ only loosely to the annotation fields. Next-cycle requirements:
 counterfactual register pairs, per-speaker diarization, and a
 register-isolation metric (with within-register control) in the
 standard eval battery.
+
+## ADC-015 — Arm B: Opus as high-level curator (open)
+
+**Context.** ADC-014's correction localized the register-lever failure
+to pair structure and annotation grounding. Two candidate fixes were
+framed: Arm A (re-export existing records as counterfactual pairs, $0)
+and Arm B (user's hypothesis, 2026-07-26): the Opus cloud arm, given a
+whole-film vantage instead of fixed windows, curates a better vein of
+machine labels — "there are still unknowns to be fathomed and rocks to
+overturn." User chose B explicitly, accepting that free-range curation
+may surface things we did not think to ask for.
+
+**Decision.** `derive/curate_opus.py`: one call per film with the FULL
+timestamped transcript (~6k tokens avg) — Opus selects the
+register-informative moments, attributes speakers from context
+(undiarized transcripts; ADC-013/014's binding defect), writes grounded
+reads with the closed register vocabulary, and reports free-text
+film_observations. A final cross-film pass writes
+`scripts/out/opus_curation/corpus_report.md` (register balance,
+counterfactual opportunities, hazards, the unexpected). Records carry
+`annotator: machine-opus-curator` and are unmixable from other arms.
+The curation brief grants latitude deliberately — requirements cover
+only speaker attribution, verbatim clinician lines, register-vocabulary
+discipline, and honesty over balance.
+
+**Cost gate.** Default run is a dry-run estimate; API calls require
+`--go` plus a valid key in `~/.config/anthropic-derive.key` (the file
+currently holds the DISABLED key). Projected ~$3.03, ceiling $6.27
+(claude-opus-4-8, $5/$25 per MTok, measured 2026-07-26).
+
+**Success criteria, stated before the curation runs.** After export v3
+from curated selections and a retrain with the ADC-014 recipe:
+
+- Register-isolation (now in the standard battery): adapter
+  between-register similarity clearly below its own within-register
+  resampling similarity (ratio < ~0.8). The v2 adapter's ratio was
+  ~1.07 (0.105 between / 0.098 within) — no lever.
+- Patient-voice rate visibly below the v2 adapter's on the same
+  transcripts (curator speaker attribution is the mechanism).
+- Retained from v2: zero fabrication, loop-rate ≈ 0 under sampled
+  decode, OOD 8-gram overlap ≈ 0, film-style transfer present.
+
+**Failure looks like:** curated labels still install no register lever
+— which would localize the defect to pair structure (counterfactuals),
+not label quality, making Arm A the necessary next test. Also possible:
+curation shrinks the corpus below trainable size (~<300 pairs), which
+is itself a finding about the corpus's true information content.
+
+**Status: open.** Awaiting a fresh API key and the user's --go.
