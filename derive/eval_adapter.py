@@ -94,10 +94,15 @@ def train_ngrams(n: int = 8) -> set[tuple]:
     return grams
 
 
-def make_generator(adapter_path: str | None):
+def make_generator(adapter_path: str | None, temp: float = 0.0,
+                   top_p: float = 1.0, rep_penalty: float = 1.0):
     from mlx_lm import generate, load
+    from mlx_lm.sample_utils import make_logits_processors, make_sampler
 
     model, tokenizer = load(BASE_MODEL, adapter_path=adapter_path)
+    sampler = make_sampler(temp=temp, top_p=top_p)
+    processors = (make_logits_processors(repetition_penalty=rep_penalty)
+                  if rep_penalty != 1.0 else None)
 
     def gen(user_prompt: str) -> str:
         messages = [{"role": "system", "content": SYSTEM},
@@ -106,6 +111,7 @@ def make_generator(adapter_path: str | None):
             messages, add_generation_prompt=True, enable_thinking=False
         )
         return generate(model, tokenizer, prompt=prompt, max_tokens=MAX_TOKENS,
+                        sampler=sampler, logits_processors=processors,
                         verbose=False).strip()
 
     return gen
@@ -115,7 +121,18 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--adapter", default=str(DATA_DIR / "lora_v2_best"))
     parser.add_argument("--heldout-situations", type=int, default=4)
+    parser.add_argument("--temp", type=float, default=0.0,
+                        help="0.0 = greedy (the original battery)")
+    parser.add_argument("--top-p", type=float, default=1.0)
+    parser.add_argument("--rep-penalty", type=float, default=1.0)
+    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--no-ood", action="store_true",
+                        help="held-out film suite only (in-domain test)")
+    parser.add_argument("--out", default="eval_v2_report.md")
     args = parser.parse_args()
+
+    import mlx.core as mx
+    mx.random.seed(args.seed)
 
     corpus_grams = train_ngrams()
     ood = json.loads(OOD_PATH.read_text())["scenarios"]
@@ -123,13 +140,16 @@ def main() -> None:
                for l in (DATA_DIR / "modulation_eval.jsonl").read_text().splitlines()]
     heldout = list(dict.fromkeys(heldout))[: args.heldout_situations]
 
-    suites = [("heldout", heldout), ("ood", [s["situation"] for s in ood])]
+    suites = [("heldout", heldout)]
+    if not args.no_ood:
+        suites.append(("ood", [s["situation"] for s in ood]))
     stats = {}
     transcripts = []
     blind = []
 
     for label, adapter in [("base", None), ("adapter", args.adapter)]:
-        gen = make_generator(adapter)
+        gen = make_generator(adapter, temp=args.temp, top_p=args.top_p,
+                             rep_penalty=args.rep_penalty)
         for suite, situations in suites:
             key = (label, suite)
             stats[key] = {"sim": [], "mem": [], "loops": 0, "fab": 0, "n": 0}
@@ -156,7 +176,9 @@ def main() -> None:
         del gen
 
     mean = lambda xs: sum(xs) / len(xs) if xs else 0.0
-    lines = ["# Adapter v2 challenge eval", ""]
+    decode = (f"decode: temp={args.temp} top_p={args.top_p} "
+              f"rep_penalty={args.rep_penalty} seed={args.seed}")
+    lines = ["# Adapter v2 challenge eval", "", decode, ""]
     lines.append(f"{'suite':<10} {'model':<8} {'modulation(sim,lower=better)':<30} "
                  f"{'mem 8-gram overlap':<20} {'loop rate':<11} {'fabricated'}")
     for suite, _ in suites:
@@ -177,7 +199,7 @@ def main() -> None:
         b = blind[idx]
         blind_lines.append(f"\n### item {i:02d} [{b['suite']}/{b['register']}] {b['situation'][:80]}\n{b['output']}")
         key_lines.append(f"item {i:02d} = {b['model']}")
-    out_path = DATA_DIR / "eval_v2_report.md"
+    out_path = DATA_DIR / args.out
     out_path.write_text(summary + "\n" + "\n".join(transcripts)
                         + "\n".join(blind_lines) + "\n".join(key_lines) + "\n")
     print(f"\nfull report + blind items: {out_path.relative_to(REPO_ROOT)}")

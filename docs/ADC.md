@@ -765,4 +765,38 @@ scenarios — which would itself be the finding that form transfers at
 ~500 pairs but generalization needs the corpus scale the throughput
 model projects. Either outcome informs the plan.
 
-**Results.** Pending — recorded below when the eval completes.
+**Results (2026-07-25).** Best checkpoint: lr 5e-6, iter 200 (val 2.629;
+lr 1e-5 overfit early). Three findings, in order of discovery:
+
+1. **Pre-registered battery: FAIL as written.** Under the battery's
+   decoding (greedy, the mlx_lm default) the adapter looped on 12/12
+   held-out and 33/36 OOD generations and fabricated numbers on held-out
+   (base: 0 loops). OOD 8-gram overlap 0.000 passed, but trivially —
+   degenerate text shares no 8-grams with anything.
+2. **The failure is decode-config-localized, not weight collapse.**
+   Diagnostic (same adapter, same prompts, temp 0.7 / top-p 0.95):
+   loops 2/18; adding repetition penalty 1.15: 0/18, zero fabrication.
+   Greedy decoding traps the adapter's shifted distribution; the
+   instruction-tuned base survives greedy. Neither pre-registered
+   outcome occurred: no film-era content ever bled into the OOD
+   scenarios — the memorization question answered clean — but the
+   loop-rate criterion was confounded with the decode config the battery
+   happened to inherit. Lesson recorded: pre-register the decode config
+   with the criteria.
+3. **In-domain test (user redirect: the PoC question is gain over base
+   on the trained distribution, not modern-UC transfer).** 6 held-out
+   film situations × 3 registers, base vs adapter, sampled decode
+   (report: `data/adapter/eval_v2_indomain_report.md`): modulation
+   0.134 (adapter) vs 0.176 (base) — registers measurably more
+   differentiated; 0 loops, 0 fabrications, 0.000 corpus 8-gram overlap
+   both models. Qualitative signature: adapter speaks film-register
+   dialogue but sometimes in the patient's voice — the ADC-013
+   undiarized-transcript leakage persists at 500 pairs, reinforcing the
+   per-speaker-track rig requirement.
+
+**Verdict:** the harness pipeline (capture → machine-annotate → export →
+train) produces trainable register signal at ~500 pairs: style transfer
+and register modulation beat base in-domain without memorization. Blind
+A/B register-fit judgment (36 items, key sealed at report end) awaits
+the physician; speaker diarization is the binding data-quality
+constraint for the next cycle.
