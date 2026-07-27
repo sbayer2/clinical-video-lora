@@ -58,11 +58,11 @@ containers are parsed for track inventory and duration; and all files must
 agree on duration within a sync tolerance (defaults: 48 kHz, 24-bit, 1.0 s
 spread; override with `--expect-sample-rate`, `--expect-bit-depth`,
 `--sync-tolerance-secs`). Ingest copies each file into a content-addressed
-immutable store (`originals/<hash-prefix>/<blake3>.<ext>`, read-only,
-verified by re-hashing the stored bytes before the manifest entry is
-written) and appends to `manifest.jsonl`. Validate re-hashes everything
-against the manifest and reports missing, corrupted, and orphaned files.
-All three exit nonzero on any failure.
+immutable store (ADC-007: `originals/<hash-prefix>/<blake3>.<ext>`,
+read-only, verified by re-hashing the stored bytes before the manifest
+entry is written) and appends to `manifest.jsonl`. Validate re-hashes
+everything against the manifest and reports missing, corrupted, and
+orphaned files. All three exit nonzero on any failure.
 
 The commands chain: `check --json-report` writes `capture-check.json` into
 the capture directory; `ingest` finds it automatically, refuses to ingest a
@@ -124,8 +124,8 @@ See `docs/ADC.md` (ADC-003).
   multi-angle sync a non-problem.
 - **Storage**: local encrypted NAS working tier + GCS (self-serve HIPAA BAA,
   CMEK, Coldline→Archive, per-object legal holds) as the immutable offsite leg.
-- **Manifest**: content-addressed media files + append-only JSONL + SQLite +
-  provenance sidecars; training formats emitted on demand, disposable.
+- **Manifest** (ADC-007): content-addressed media files + append-only JSONL +
+  SQLite + provenance sidecars; training formats emitted on demand, disposable.
 - **Derive pipeline**: mlx-whisper + CTC alignment, pYIN/RMS prosody, affect
   as ranking signal only, MediaPipe→py-feat cascade; no pyannote.
 

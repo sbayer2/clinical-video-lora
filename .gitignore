@@ -33,3 +33,6 @@ memory_records*.json
 
 # Training exports (regenerable from records)
 data/
+
+# graphify knowledge-graph output (regenerable: /graphify .)
+graphify-out/
