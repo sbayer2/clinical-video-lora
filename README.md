@@ -14,8 +14,12 @@ Full decision map: [docs/harness-action-plan.md](docs/harness-action-plan.md).
 Nothing records anything yet. Legal predicates (recording ownership under
 the practice arrangement, malpractice-carrier position, IRB scope) are
 unresolved and
-**gate all capture work** — see plan section 2. What exists now are the
-pre-capture deliverables from plan section 9:
+**gate all capture work** — see plan section 2. Resolving them through an
+IRB-governed academic partnership is the direction now being pursued; see
+[Research direction](#research-direction-irb-governed-capture-partnership-sought)
+below. Meanwhile the conditioning pathway has been tested end to end on
+archival film — see [Adapter pilot](#adapter-pilot-on-archival-film-adc-012015).
+What exists now are the pre-capture deliverables from plan section 9:
 
 | Item | Where | Plan ref |
 |---|---|---|
@@ -113,6 +117,73 @@ clear its full supply. Five-year totals run ~400 (conservative) to ~3,700
 (aggressive) annotated clips. Consequence: consent-rate design and number of
 recorded shifts dominate corpus size; annotation-UI throughput does not.
 See `docs/ADC.md` (ADC-003).
+
+## Adapter pilot on archival film (ADC-012..015)
+
+While capture is gated, the conditioning pathway was tested end to end on a
+proxy corpus: public-domain and openly licensed clinical and counseling films
+(the Gloria trilogy, Beck, Meichenbaum, a motivational-interviewing session,
+standardized-patient encounters, a mid-century psychiatric interview series).
+Training cycles ran on 14 films (~6.8 h); the corpus has since grown to 22
+(~9.4 h). Films were machine-annotated against the schema, exported to
+prompt/completion pairs, and used to train LoRA adapters on a local Qwen3-8B.
+
+**Demonstrated.** The loop closes end to end and entirely locally:
+capture-validate → annotate → export → train → evaluate. Style transfer is
+real and visible. No verbatim memorization survives the export fixes (0.000
+8-gram overlap with training completions on held-out material). Speaker-
+attributed labels eliminated the adapter's worst failure mode outright.
+
+**Not achieved.** Register conditioning — the project's central claim — does
+not appear at this corpus size. A register-isolation test (vary only the
+selected register, hold situation and clinical read fixed, against a
+within-register resampling control) shows the adapter's between-register
+variation is indistinguishable from its own sampling noise across three
+seeds, while the untuned base model does steer on the register word. An
+earlier positive result was **retracted** when multi-seed testing failed to
+replicate it — see the correction in ADC-014.
+
+**What the pilot establishes about the corpus, not the instrument.** The
+archival films are staged demonstrations: uniformly low acuity, no
+established clinician–patient relationships, registers entangled with
+individual demonstrators (nearly all "firm" delivery in the corpus comes from
+two therapists), and single-track audio that turns speaker attribution into a
+modeling problem instead of a recording property. Each of those is a property
+of the proxy corpus. None is a property of the method.
+
+## Research direction: IRB-governed capture partnership (sought)
+
+The binding constraint here is not engineering. The instrument is built and
+the pathway is validated; what does not exist is a lawful, consented corpus of
+real encounters — and the pilot above quantifies precisely why archival
+footage cannot substitute for one.
+
+The direction being pursued is an academic research partnership: resident
+family-medicine clinical encounters captured under institutional IRB
+governance, with the partnering institution retaining rights to the video
+database and the derived annotations for future research. This project
+contributes the instrument — capture validation, the annotation UI and
+schema, the derive pipeline, the export and training path, and the evaluation
+battery including the register-isolation test that produced the null above.
+
+Requirements the pilot has already established, which a capture protocol
+should specify from the outset:
+
+- **Per-speaker audio tracks** (separate lapel channels, not a room mic).
+  Single-track audio caused the pilot's most damaging defect: adapters trained
+  on undiarized transcripts spoke the patient's lines back. Channel = speaker
+  removes it at the source instead of modeling around it (ADC-013, ADC-015).
+- **Counterfactual coverage as a sampling target.** Register conditioning is
+  only learnable if the corpus contains comparable clinical situations
+  delivered in different registers. A multi-resident clinic supplies this
+  naturally, but it should be sampled for deliberately rather than left to
+  chance.
+- **Separation of research use from resident evaluation.** Recording that is
+  perceived as assessment changes the behavior being measured and depresses
+  consent; consent design and access control should keep the two apart.
+
+Nothing here is agreed or underway. This section documents the direction being
+sought, not an existing collaboration.
 
 ## Architecture decisions (ADC-004..008, decided 2026-07-22)
 
