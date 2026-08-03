@@ -267,4 +267,8 @@ sought, not an existing collaboration.
   as ranking signal only, MediaPipe→py-feat cascade; no pyannote.
 
 Evidence in `docs/research/`; rationale and consequences in `docs/ADC.md`.
-Decision brief (readable summary): `artifacts/decision-brief.html`.
+Decision brief (readable summary): `artifacts/decision-brief.html` — a
+**snapshot dated 2026-07-22**, covering the §10 questions and the
+architecture decisions through ADC-004. It predates the adapter work
+entirely; for ADC-005 onward, and for everything in the Adapter pilot
+section above, read `docs/ADC.md`.
