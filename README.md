@@ -30,6 +30,34 @@ has and has not been shown. Substantially more testing — and, the evidence
 suggests, real clinical data — is required before anything here should be
 relied on.
 
+## Quickstart
+
+*Verified 2026-07-28 from a clean clone: 864 KB, no submodules, no data.*
+
+    git clone https://github.com/sbayer2/clinical-video-lora.git
+    cd clinical-video-lora
+
+    open tools/memory_annotation.html      # schema instrument — no dependencies
+    python3 scripts/throughput_model.py    # corpus growth model — stdlib only
+    cd harness && cargo test && cd ..      # 18 tests — needs a Rust toolchain
+
+**To annotate your own video** — three packages, and the encounters stay on
+your machine:
+
+    python3 -m venv .venv
+    ./.venv/bin/pip install -r requirements.txt
+    ./.venv/bin/python -m annotator.main --clips <directory-of-video>
+
+Open the printed `http://127.0.0.1:8765/?token=…` URL. Loopback-only, token
+gated. Point it at any clinical video you already hold — OSCE recordings,
+teaching footage — and the full loop runs: scrub, mark in/out, fill the
+schema form, server-side validation against
+`schema/encounter_record.schema.json`, SQLite persistence, JSONL export.
+
+The derive layer (`derive/`) additionally needs the MLX stack on Apple
+silicon, and the adapter results are **not** reproducible from a clone — see
+[What a clone gives you](#what-a-clone-gives-you--and-what-it-doesnt) below.
+
 ## Method, in brief
 
 **From clip to training pair.** Each annotated clip becomes one
