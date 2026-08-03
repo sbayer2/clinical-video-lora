@@ -168,6 +168,40 @@ record is validated server-side against
 come back with field-level paths. `export JSONL` dumps the schema-pure
 records.
 
+## What a clone gives you — and what it doesn't
+
+**Runs standalone, no data and no setup beyond the toolchain:**
+
+| | |
+|---|---|
+| `open tools/memory_annotation.html` | the schema instrument, zero dependencies |
+| `python3 scripts/throughput_model.py` | corpus growth model, stdlib only |
+| `cd harness && cargo test` | 18 tests, self-generating fixtures |
+
+**Needs media you supply:** the scrub prototype and the annotation UI both
+operate on clips — point them at your own footage and they work end to end.
+
+**Cannot be reproduced from a clone:** the adapter results. The film corpus,
+the annotation records, the exported training pairs, and the trained adapter
+weights are all excluded by `.gitignore` — deliberately, since the same
+exclusions must hold once real encounters exist. What *is* reproducible is
+the method: `derive/export_training.py`, `derive/export_curated.py`, and
+`derive/eval_adapter.py` are the exact scripts that produced the pilot
+numbers, including the register-isolation test, and they run against any
+corpus you assemble yourself. Treat the findings in this README as reported,
+not as independently verifiable from this repository alone.
+
+**Licensing is split**, because code and data carry different risk:
+
+- **Code, schema, and documentation — [Apache-2.0](LICENSE).** Use, modify,
+  and redistribute freely, commercially or not. The instrument is meant to
+  be picked up.
+- **Encounter data and annotations — [all rights reserved](DATA_LICENSE.md).**
+  No recordings, transcripts, or labels are in this repository, and none are
+  licensed by the code license. Any future corpus is governed by the
+  applicable IRB protocol and a written agreement between the parties —
+  which is also how a partnering institution's rights in it are established.
+
 ## Headline finding so far
 
 Under the plan's own assumption that performance-moments are 3–5% of runtime
