@@ -3,7 +3,7 @@
 *Referred to throughout the decision log as the Encounter Delivery Harness.*
 
 **The research question.** In a primary care or urgent care clinical encounter the care plan is largely
-protocol, but the practitioner delivery is highly variable. Bedside manner or prationer information delivery involves pacing, register, stance,
+protocol, but the practitioner delivery is highly variable. Bedside manner or healthcare provider information delivery involves pacing, register, stance,
 word choice, each conditioned on the clinician's read of the patient in that clinical encounter. This project asks whether that dimension can be
 captured, labeled reliably, and used as research dataset: whether video of real encounters can
 yield **clinical practice-pattern and delivery-style labels** usable to direct with a LORA trained adapter
