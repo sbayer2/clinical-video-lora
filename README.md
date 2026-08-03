@@ -6,7 +6,7 @@
 protocol, but the practitioner delivery is highly variable. Bedside manner involves pacing, register, stance,
 word choice, each conditioned on the clinician's read of the patient in that clinical encounter. This project asks whether that dimension can be
 captured, labeled reliably, and used as research dataset: whether video of real encounters can
-yield **clinical practice-pattern and delivery-style labels** to construct a LoRA trained adapter for a 
+yield **clinical practice-pattern and delivery-style labels** to construct a LoRA trained adapter to positively affect the behavior of a 
 virtual large language model and potentially a future local compressed multimodal clinical AI model.
 
 Current research deliverables
