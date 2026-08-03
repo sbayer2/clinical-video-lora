@@ -21,9 +21,8 @@ delivered rather than only what was decided. The corpus and its schema stand
 on their own regardless of what happens to the adapter.
 
 **2. A capture-and-annotation harness, and adapters trained from it —
-with limited but positive proof of concept, and under active testing.** The pipeline runs end to end and the
-instrument is real, but the central claim (that a model can be conditioned to
-modulate delivery register) has **not** been demonstrated. Three training
+positive proof of concept on the capture-to-training pipeline; the register-conditioning claim itself remains undemonstrated.** The pipeline runs end to end and the instrument is real, but the central claim (that a model can be conditioned to
+modulate delivery register from a LORA Trained adapter) has **not** been demonstrated. Three training
 cycles on an archival proxy corpus produced a measured null, and one earlier
 positive result was retracted when it failed to replicate across seeds. See
 [Adapter pilot](#adapter-pilot-on-archival-film-adc-012015) for exactly what
@@ -75,7 +74,7 @@ Full decision map: [docs/harness-action-plan.md](docs/harness-action-plan.md).
 ## Status: pre-Phase 0
 
 Legal predicates (recording ownership under
-the practice arrangement, privacy , IRB scope) is limited for personal use
+the practice arrangement, privacy, IRB scope, etc) is limited.
 **gate all capture work** — see plan section 2. Resolving them through an
 IRB-governed academic partnership is the direction now being pursued; see
 [Research direction](#research-direction-irb-governed-capture-partnership-sought)
