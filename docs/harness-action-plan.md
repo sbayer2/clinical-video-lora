@@ -1,16 +1,22 @@
-# Encounter Delivery Harness — Action Plan v0.1
+# Clinical Encounter Video — Action Plan v0.2
 
-**Author context:** prepared by a practicing urgent care clinician-developer, from a working session that empirically established the core technical premise.
-**Purpose:** planning input for a Claude Code build session. Not a spec — a decision map with the irreversible choices flagged.
-**Status:** pre-Phase 0. Nothing has been built. Legal predicates unresolved.
+*The "Encounter Delivery Harness" throughout this document and the ADC log.*
+
+**Author context:** prepared by a practicing urgent care clinician-developer, from a working session that empirically established the core technical premise. Urgent care is the author's setting and the origin of the question; nothing in the plan is specific to it.
+**Purpose:** a decision map with the irreversible choices flagged — not a spec.
+**Status (2026-07-28):** Phase 0 legal predicates remain **unresolved and still gate all capture**; an IRB-governed academic partnership is the route now being pursued to resolve them (see 0.6). Phase 1–4 tooling is built, and the conditioning pathway has been tested end to end on an archival proxy corpus — producing a **measured null** on the central claim, with one earlier positive result retracted on multi-seed replication (ADC-012..015; summary in `../README.md`). Section numbering is unchanged from v0.1, since ADC entries cite it.
 
 ---
 
 ## 0. Thesis
 
-Urgent care plans are largely protocol. Delivery is not. Adherence tracks communication quality more strongly than most of what clinicians argue about (Zolnierek & DiMatteo 2009: ~1.5–2x odds of non-adherence with poor communicators). Therefore the scarce, non-commodity asset in a given clinician is **delivery conditioned on clinical read** — and it is currently discarded by every ambient-scribe pipeline in the market (Abridge, DAX, Suki all keep the documentation and throw the interaction away).
+In a great many clinical encounters the plan is largely protocol. Delivery is not. Adherence tracks communication quality more strongly than most of what clinicians argue about (Zolnierek & DiMatteo 2009: ~1.5–2x odds of non-adherence with poor communicators). Therefore the scarce, non-commodity asset in a given clinician is **delivery conditioned on clinical read** — and it is currently discarded by every ambient-scribe pipeline in the market (Abridge, DAX, Suki all keep the documentation and throw the interaction away).
 
-The harness captures that, structures it, and produces a **style adapter** for a future multimodal any-to-any / latent-predictive model. The model supplies clinical reasoning. The adapter supplies delivery.
+Urgent care, the author's setting, makes the protocol/delivery split unusually stark and is where the question originated. It is not the boundary of the claim: primary care, where continuity makes delivery cumulative across a relationship, is if anything the stronger case.
+
+The harness captures that, structures it, and aims to produce a **style adapter** for a future multimodal any-to-any / latent-predictive model. The model supplies clinical reasoning. The adapter supplies delivery.
+
+**Status of the thesis (2026-07-28).** The capture-and-annotate half is built and works. The adapter half is unproven: three training cycles on archival film have not produced register conditioning, and the one positive result was retracted when it failed to replicate across seeds. Two things follow. First, the thesis is a hypothesis under test, not a finding, and should be cited as such. Second, the **annotated corpus is the deliverable that does not depend on the thesis being right** — labeled encounter video is useful to clinical AI research (communication assessment, resident education, practice-pattern description) whether or not an adapter ever learns to modulate register from it.
 
 **Target horizon:** ~5 years. Architecture unknown. This implies capture at maximum fidelity and annotation in an architecture-neutral schema.
 
@@ -47,7 +53,13 @@ Do not build ingestion around data you may not be able to keep.
 
 **0.5 Consent instrument.** Layered: (a) recording, (b) research use, (c) model training, (d) style reproduction in a disclosed AI system. Patients must be able to grant (a)–(b) and decline (c)–(d). Assume a meaningful decline rate and design the corpus around it.
 
-> **Gate:** no capture hardware is purchased until 0.1 and 0.3 return usable answers.
+**0.6 Institutional partnership path (added v0.2).** 0.1–0.5 are written for the solo case: an individual clinician recording in a facility where he is a contractor. An academic research partnership does not remove those questions, it changes who answers them. The partnering institution is the covered entity, its IRB governs the protocol, and it holds the resulting video and derived annotations. **0.1** (ownership) and **0.4** (IRB pathway) are then settled by the institution's existing arrangements rather than negotiated per-clinician; **0.2** (de-identification unavailable — full face and voice are the identifier) and **0.5** (layered consent) are unchanged and still binding; **0.3** (discoverability) shifts to the institution's counsel and carrier.
+
+What the partnership *adds* is a second subject population. If the encounters are resident clinic visits, residents are subjects too: their consent is a separate instrument from the patients', and their recorded encounters must be firewalled from performance evaluation. This is not only an ethics requirement — recording perceived as assessment changes the behavior under study and depresses participation, which by section 8.7's own logic attacks corpus size at the supply end.
+
+The empirical requirements the archival pilot established should be written into any protocol at the outset: **per-speaker audio tracks** (section 3 already specifies separate lapel channels; ADC-013/015 showed why — single-track audio made adapters speak the patient's lines), and **counterfactual sampling** — comparable presentations delivered in different registers, which a multi-clinician teaching clinic supplies naturally but only if sampled for deliberately.
+
+> **Gate:** no capture hardware is purchased until 0.1 and 0.3 return usable answers — from whichever path, solo or institutional, is actually taken.
 
 ---
 
@@ -190,12 +202,16 @@ Requested explicitly, and worth keeping in the document.
 
 ## 9. Immediate next actions
 
-1. Healthcare counsel: ownership of encounter recordings under the applicable practice arrangement (§0.1). **Blocking.**
-2. Malpractice carrier: position on retained encounter video (§0.3). **Blocking.**
-3. IRB pre-submission conversation — scope must cover training and deployment, not just collection.
-4. Draft the annotation schema against **10 encounters from memory**, no recording. If the schema cannot capture what mattered in encounters you remember well, it will not capture it on tape. Cheapest possible test of the core premise.
-5. Throughput model: annotated clips/week × 260 weeks. Decide if the terminal number justifies the build.
-6. Only then: capture rig spec and hardware.
+*Item numbering is preserved from v0.1 (ADC entries cite §9.4); status as of 2026-07-28 is annotated in place.*
+
+1. Healthcare counsel: ownership of encounter recordings under the applicable practice arrangement (§0.1). **Still blocking** — but under the institutional path (§0.6) this is answered by the partner's arrangements rather than negotiated solo.
+2. Malpractice carrier: position on retained encounter video (§0.3). **Still blocking**; likewise shifts to institutional counsel under §0.6.
+3. IRB pre-submission conversation — scope must cover training and deployment, not just collection. **Still open**, and now the partner institution's IRB rather than one sought independently.
+4. Draft the annotation schema against **10 encounters from memory**, no recording. If the schema cannot capture what mattered in encounters you remember well, it will not capture it on tape. Cheapest possible test of the core premise. **Instrument built** (`tools/memory_annotation.html`); the 10-encounter pass itself is **still outstanding** and remains the only privileged-read test of the schema — the author is the sole person who can run it.
+5. Throughput model: annotated clips/week × 260 weeks. Decide if the terminal number justifies the build. **Done** (ADC-003): supply-bound, not annotation-bound; consent rate and shifts recorded dominate corpus size, annotation-UI throughput does not.
+6. Only then: capture rig spec and hardware. **Unchanged and still gated** by 1 and 2.
+
+**Added since v0.1, not in the original list:** the conditioning pathway was tested end to end on archival film while capture stayed gated (ADC-012..015). It produced a measured null on register conditioning and fixed a patient-voice defect traceable to single-track audio. Both results feed §0.6's protocol requirements.
 
 ---
 

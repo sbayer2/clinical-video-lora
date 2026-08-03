@@ -34,6 +34,45 @@ has and has not been shown. Substantially more testing — and, the evidence
 suggests, real clinical data — is required before anything here should be
 relied on.
 
+## Method, in brief
+
+**From clip to training pair.** Each annotated clip becomes one
+prompt/completion pair. The prompt carries the *clinical read* — situation,
+patient affect observed, acuity, prior relationship, the selected register,
+and why that register was chosen. The completion is what the clinician
+actually said in that clip. Annotations come from two sources, kept
+unmixable by construction: human annotation through the local UI
+(`annotator/`), and machine annotation (`derive/`) that is explicitly test
+scaffolding for the pathway, not a substitute for human labels (ADC-012).
+
+**Adapter training.** Low-Rank Adaptation (LoRA; Hu et al. 2021) over
+**`mlx-community/Qwen3-8B-4bit`** — Qwen3-8B, 4-bit quantized, running
+locally on Apple silicon via MLX. Rank 8, scale 20, dropout 0, applied to
+the top 16 layers; batch 4, Adam, `--mask-prompt` so loss falls only on the
+delivery text and never on the clinical read; two-learning-rate sweep
+(1e-5 / 5e-6) with the best-validation checkpoint kept. Validation is a
+**fully held-out film**, never a random split, because near-duplicate clips
+leak across a random boundary. LoRA is chosen deliberately: it transfers
+*form*, not *content* (§1 of the plan), which is exactly the separation this
+project needs — the base model must keep supplying clinical reasoning while
+the adapter supplies only delivery.
+
+**Evaluation.** The same local Qwen3-8B-4bit, with and without the adapter,
+generating from identical prompts under identical sampled decoding
+(temp 0.7, top-p 0.95, repetition penalty 1.15 — fixed after greedy decoding
+was found to confound an entire round of results). There is no ground-truth
+delivery to score against, so the battery measures the adapter *against the
+untuned base model* on held-out material along four axes: **register
+isolation** (vary only the register word, hold everything else fixed, scored
+against a within-register resampling control — the metric that produced the
+current null), **memorization** (8-gram overlap with training completions),
+**degeneracy** (loop rate), and **fabrication** (numbers appearing in output
+that were absent from the prompt). A blind A/B of shuffled adapter/base
+outputs, key sealed until after scoring, is where physician judgment enters —
+the only place a human decides whether a register actually fits.
+Multi-seed replication is required before any result is recorded as a
+finding; one earlier positive result did not survive it.
+
 Full decision map: [docs/harness-action-plan.md](docs/harness-action-plan.md).
 
 ## Status: pre-Phase 0
