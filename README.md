@@ -7,7 +7,7 @@ protocol, but the practitioner delivery is highly variable. Bedside manner invol
 word choice, each conditioned on the clinician's read of the patient in that clinical encounter. This project asks whether that dimension can be
 captured, labeled reliably, and used as research dataset: whether video of real encounters can
 yield **clinical practice-pattern and delivery-style labels** usable to direct with a LORA trained adapter attached to a 
-current large language model and likely more capable future multimodal clinical AI and deep learning models.
+current large language model and likely more capable future multimodal clinical AI models.
 
 Current research deliverables
 
