@@ -2,17 +2,14 @@
 
 *Referred to throughout the decision log as the Encounter Delivery Harness.*
 
-**The research question.** In a clinical encounter the plan is largely
-protocol, but *how it lands* is not. Delivery — pacing, register, stance,
-word choice, each conditioned on the clinician's read of the patient in front
-of them — is discarded by every ambient-scribe pipeline and is absent from
-every public dataset. This project asks whether that dimension can be
-captured, labeled reliably, and learned: whether video of real encounters can
-yield **clinical practice-pattern and delivery-style labels** usable to
-condition future multimodal clinical models. Urgent care motivated the
-question; nothing about it is specific to that setting.
+**The research question.** In a primary care or urgent care clinical encounter the care plan is largely
+protocol, but the pratitioner delivery is highly variable. Bedside manner or Delivery involves pacing, register, stance,
+word choice, each conditioned on the clinician's read of the patient in that clinical encounter. This project asks whether that dimension can be
+captured, labeled reliably, and used as research dataset: whether video of real encounters can
+yield **clinical practice-pattern and delivery-style labels** usable to direct with a LORA trained adapter
+current and likely more capable future multimodal clinical AI models.
 
-**Two deliverables, of very unequal maturity.**
+Current research deliverables
 
 **1. A labeled clinical video dataset — the durable asset.** Annotated
 encounter video (clinical read, selected register, the communicative move,
@@ -24,7 +21,7 @@ delivered rather than only what was decided. The corpus and its schema stand
 on their own regardless of what happens to the adapter.
 
 **2. A capture-and-annotation harness, and adapters trained from it —
-unproven, and under active testing.** The pipeline runs end to end and the
+with limited but positive proof of concept, and under active testing.** The pipeline runs end to end and the
 instrument is real, but the central claim (that a model can be conditioned to
 modulate delivery register) has **not** been demonstrated. Three training
 cycles on an archival proxy corpus produced a measured null, and one earlier
@@ -77,9 +74,8 @@ Full decision map: [docs/harness-action-plan.md](docs/harness-action-plan.md).
 
 ## Status: pre-Phase 0
 
-Nothing records anything yet. Legal predicates (recording ownership under
-the practice arrangement, malpractice-carrier position, IRB scope) are
-unresolved and
+Legal predicates (recording ownership under
+the practice arrangement, privacy , IRB scope) is limited for personal use
 **gate all capture work** — see plan section 2. Resolving them through an
 IRB-governed academic partnership is the direction now being pursued; see
 [Research direction](#research-direction-irb-governed-capture-partnership-sought)
