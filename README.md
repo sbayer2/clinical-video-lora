@@ -22,7 +22,7 @@ on their own regardless of what happens to the adapter.
 
 **2. A capture-and-annotation harness, and adapters trained from it —
 positive proof of concept on the capture-to-training pipeline; the register-conditioning claim itself remains undemonstrated.** The pipeline runs end to end and the instrument is real, but the central claim (that a small local model can be conditioned to
-modulate delivery register from a LoRA Trained adapter) has **not** been demonstrated. Three training
+modulate delivery register from a LoRA trained adapter) has **not** been demonstrated. Three training
 cycles on an archival proxy corpus produced a measured null, and one earlier
 positive result was retracted when it failed to replicate across seeds. See
 [Adapter pilot](#adapter-pilot-on-archival-film-adc-012015) for exactly what
