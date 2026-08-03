@@ -74,7 +74,7 @@ Full decision map: [docs/harness-action-plan.md](docs/harness-action-plan.md).
 ## Status: pre-Phase 0
 
 Legal predicates (recording ownership under
-the practice arrangement, malpractice-carrier position, privacy, IRB scope) is limited.
+the practice arrangement, malpractice-carrier position, privacy, IRB scope)
 **gate all capture work** — see plan section 2. Resolving them through an
 IRB-governed academic partnership is the direction now being pursued; see
 [Research direction](#research-direction-irb-governed-capture-partnership-sought)
