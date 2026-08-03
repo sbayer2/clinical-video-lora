@@ -34,8 +34,8 @@ relied on.
 
 *Verified 2026-07-28 from a clean clone: 864 KB, no submodules, no data.*
 
-    git clone https://github.com/sbayer2/clinical-video-lora.git
-    cd clinical-video-lora
+    git clone https://github.com/sbayer2/video-clnical-lora.git
+    cd video-clinical-lora
 
     open tools/memory_annotation.html      # schema instrument — no dependencies
     python3 scripts/throughput_model.py    # corpus growth model — stdlib only
