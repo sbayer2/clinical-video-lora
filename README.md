@@ -1,11 +1,38 @@
-# Encounter Delivery Harness
+# Clinical Encounter Video — Annotation and Adapter Research
 
-A capture-and-annotation harness for clinical encounter delivery. The premise:
-in urgent care the plan is largely protocol, but *how it lands* is not — and
-that delivery skill, conditioned on the clinician's read of the patient, is
-discarded by every ambient-scribe pipeline. This project captures it at high
-fidelity, annotates it in an architecture-neutral schema, and aims to produce
-a style adapter for a future multimodal model.
+*Referred to throughout the decision log as the Encounter Delivery Harness.*
+
+**The research question.** In a clinical encounter the plan is largely
+protocol, but *how it lands* is not. Delivery — pacing, register, stance,
+word choice, each conditioned on the clinician's read of the patient in front
+of them — is discarded by every ambient-scribe pipeline and is absent from
+every public dataset. This project asks whether that dimension can be
+captured, labeled reliably, and learned: whether video of real encounters can
+yield **clinical practice-pattern and delivery-style labels** usable to
+condition future multimodal clinical models. Urgent care motivated the
+question; nothing about it is specific to that setting.
+
+**Two deliverables, of very unequal maturity.**
+
+**1. A labeled clinical video dataset — the durable asset.** Annotated
+encounter video (clinical read, selected register, the communicative move,
+the observable patient response, all under a versioned schema) is scarce, and
+it is useful to AI clinical research well beyond this project's own
+hypothesis: communication assessment, resident education, practice-pattern
+description, and any future model that must reason about *how* care is
+delivered rather than only what was decided. The corpus and its schema stand
+on their own regardless of what happens to the adapter.
+
+**2. A capture-and-annotation harness, and adapters trained from it —
+unproven, and under active testing.** The pipeline runs end to end and the
+instrument is real, but the central claim (that a model can be conditioned to
+modulate delivery register) has **not** been demonstrated. Three training
+cycles on an archival proxy corpus produced a measured null, and one earlier
+positive result was retracted when it failed to replicate across seeds. See
+[Adapter pilot](#adapter-pilot-on-archival-film-adc-012015) for exactly what
+has and has not been shown. Substantially more testing — and, the evidence
+suggests, real clinical data — is required before anything here should be
+relied on.
 
 Full decision map: [docs/harness-action-plan.md](docs/harness-action-plan.md).
 
